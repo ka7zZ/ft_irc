@@ -1,0 +1,32 @@
+Here's a compact side-by-side he can look at in ten seconds:
+
+Something that needs an AST (recursive grammar)
+
+Input: (3 + 4) * 2
+
+        *
+       / \
+      +   2
+     / \
+    3   4
+
+Needs a tree because + must be evaluated before *, and expressions can nest inside expressions arbitrarily deep — ((3+4)*2)+5 needs another layer, (((3+4)*2)+5)*6 needs another, and so on forever. The tree shape is the only way to encode "this part happens first."
+
+An IRC message (regular grammar)
+
+Input: PRIVMSG #general :hey guys
+
+struct Message {
+  prefix  = ""
+  command = "PRIVMSG"
+  params  = ["#general", "hey guys"]
+}
+
+No evaluation order to encode, nothing nests inside anything else, and no IRC command — not one, in the whole RFC — has params that contain sub-commands needing their own parse. It's a fixed-depth list, always.
+
+The one-line test
+	Can it nest?	Right structure
+(3+4)*2	Yes, arbitrarily	Tree (AST)
+PRIVMSG #general :hey guys	No, ever	Flat struct
+
+That's the whole argument: a tree is for representing "this can contain another one of itself." IRC params can't. So there's nothing for a tree to represent.
