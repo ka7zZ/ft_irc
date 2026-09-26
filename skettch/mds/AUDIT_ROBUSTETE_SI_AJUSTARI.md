@@ -606,3 +606,413 @@ reparat fundamental la nivel de stream TCP, ownership si send.
 Solutia recomandata nu este alegerea exclusiva a uneia dintre variante, ci
 combinarea lor: **transportul robust din `demo_sources` + modularitatea din
 `another_demo` + ownership explicit si teste de protocol**.
+
+---
+
+## 16. Lucrul in echipa: doua persoane pe acelasi repository GitHub
+
+Pentru acest proiect, colaborarea trebuie organizata astfel incat cele doua
+persoane sa nu editeze simultan aceleasi blocuri din `Server.cpp`, `Server.hpp`
+sau `Makefile` fara coordonare. Un workflow simplu si robust este:
+
+```text
+main
+  ├── feature/transport-framing
+  └── feature/protocol-registry
+```
+
+### 16.1 Impartirea recomandata
+
+**Persoana A - transport si lifecycle**
+
+- `demo_sources/srcs/Server.cpp`
+- `demo_sources/srcs/Socket.cpp`
+- `demo_sources/headers/Server.hpp`
+- `demo_sources/headers/Socket.hpp`
+- `another_demo/srcs/TCPSocket.cpp`
+- framing TCP, `poll`, `accept`, `recv`, `send`, shutdown si ownership fd.
+
+**Persoana B - protocol si stare IRC**
+
+- `demo_sources/srcs/User.cpp`
+- `demo_sources/srcs/Channel.cpp`
+- `demo_sources/headers/User.hpp`
+- `demo_sources/headers/Channel.hpp`
+- `another_demo/srcs/Lexer.cpp`
+- `another_demo/srcs/ASTParser.cpp`
+- `another_demo/srcs/CommandDispatcher.cpp`
+- validare IRC, nickname-uri, canale, registry si raspunsuri numerice.
+
+Impartirea nu este absoluta. Daca ambele persoane trebuie sa modifice
+`Server.cpp`, se stabileste inainte un contract de integrare: Persoana A
+expune functii de transport precum `queueOutput()` si `popLine()`, iar
+Persoana B le foloseste fara sa rescrie event loop-ul.
+
+### 16.2 Reguli de branch
+
+Fiecare persoana lucreaza pe propriul branch pornit de la `main` actualizat:
+
+```bash
+git fetch origin
+git switch main
+git pull --ff-only origin main
+git switch -c feature/transport-framing
+```
+
+Branch-ul nu trebuie impartit de doua persoane. Fiecare branch trebuie sa aiba
+un singur scop clar si commit-uri mici:
+
+```text
+fix: preserve fragmented IRC lines
+fix: bound per-client output queue
+test: cover partial non-blocking writes
+```
+
+Nu se folosesc commit-uri de forma `misc`, `changes` sau `final`, deoarece
+acestea fac review-ul si identificarea regresiilor dificile.
+
+### 16.3 Ordinea integrarii
+
+1. Persoana A introduce contractul de transport: `Connection`, bufferul de
+   input, coada de output si semnalizarea erorilor.
+2. Persoana B scrie parserul/dispatcherul impotriva acelui contract, fara sa
+   scrie direct in socket.
+3. Se adauga testele unitare pentru fiecare contract.
+4. Se deschid pull request-uri separate.
+5. Se integreaza mai intai transportul, apoi protocolul.
+6. Dupa fiecare integrare se ruleaza build-ul cu:
+
+```bash
+make re
+```
+
+Daca proiectul ajunge sa aiba teste, acestea trebuie rulate in acelasi PR cu
+modificarea pe care o protejeaza.
+
+### 16.4 Reguli pentru fisiere comune
+
+Pentru [Makefile](/home/alexkatz/Documents/GitHub/PENDING/ft_irc/Makefile),
+`main.cpp` si documentatie:
+
+- se anunta inainte cine modifica fisierul;
+- nu se combina reformatarea cu modificarea functionala;
+- nu se face `git checkout --` sau `git reset --hard` peste munca celeilalte
+  persoane;
+- conflictele se rezolva manual, pastrand intentia ambelor branch-uri;
+- dupa rezolvare se verifica `git diff --check` si build-ul.
+
+Exemplu de rezolvare controlata:
+
+```bash
+git fetch origin
+git rebase origin/main
+# se rezolva doar fisierele aflate in conflict
+git add <fisiere-rezolvate>
+git rebase --continue
+make re
+```
+
+Rebase-ul se face numai pe branch-ul propriu, niciodata pe un branch pe care
+lucreaza simultan cealalta persoana.
+
+### 16.5 Contracte intre componente
+
+Inainte de implementare, echipa trebuie sa scrie explicit contractele, de
+exemplu:
+
+```cpp
+// Transportul produce numai linii IRC complete, fara "\r\n".
+bool Connection::popLine(std::string& line);
+
+// Protocolul nu apeleaza send(); pune raspunsul in coada.
+void Connection::queueOutput(const std::string& message);
+```
+
+Aceste contracte previn doua surse frecvente de conflicte:
+
+- parserul sa presupuna ca un `recv()` este o comanda completa;
+- dispatcherul sa presupuna ca `send()` transmite tot mesajul.
+
+### 16.6 Review obligatoriu
+
+Niciun PR nu se integreaza direct fara verificarea celeilalte persoane. Review-ul
+trebuie sa verifice cel putin:
+
+- ownership si inchiderea descriptorilor;
+- tratarea `EINTR`, `EAGAIN`, EOF si `POLLHUP`;
+- framing pentru fragmentare si comenzi concatenate;
+- limite pentru input/output;
+- indexuri consistente la `NICK`, `QUIT` si disconnect;
+- teste pentru cazurile de eroare;
+- compatibilitatea cu `-Wall -Wextra -Werror -std=c++98`.
+
+Un checklist minim in PR:
+
+```text
+[ ] Nu exista raw pointer owning nou fara justificare.
+[ ] Nu exista send() direct din dispatcher.
+[ ] Nu se modifica un vector/map in timpul iteratiei sale.
+[ ] Orice noua limita are un test.
+[ ] Erorile POSIX sunt tratate explicit.
+[ ] make re si git diff --check trec.
+```
+
+### 16.7 Evitarea conflictelor prin integrare frecventa
+
+Fiecare persoana isi sincronizeaza branch-ul cu `main` inainte de a deschide
+PR-ul. Nu se asteapta pana la finalul proiectului pentru integrare. Cu cat
+branch-ul traieste mai mult, cu atat creste probabilitatea unui conflict in
+`Server.cpp`.
+
+Daca doua schimbari sunt logic dependente, prima persoana publica intai
+contractul minim si testele lui. A doua persoana face rebase pe acel PR sau
+porneste branch-ul din commit-ul respectiv, nu copiaza manual codul.
+
+### 16.8 Workflow recomandat, pe scurt
+
+```text
+1. Alegeti issue-ul si fisierele detinute de fiecare persoana.
+2. Definiti contractul dintre transport si protocol.
+3. Lucrati pe branch-uri separate.
+4. Faceti commit-uri mici, compilabile.
+5. Faceti push si deschideti PR.
+6. Faceti review incrucisat.
+7. Rezolvati conflictele pe branch-ul autorului.
+8. Rulati build, teste si diff check.
+9. Faceti merge in main.
+10. Stergeti branch-ul doar dupa confirmarea merge-ului.
+```
+
+### 16.9 Ce se intampla dupa `git push origin branch`
+
+Daca fiecare persoana lucreaza pe propriul branch, repository-ul comun ramane
+protejat de modificarile neintegrate. De exemplu:
+
+```text
+origin/main
+  ├── origin/alex
+  └── origin/maria
+```
+
+Comanda:
+
+```bash
+git push -u origin alex
+```
+
+are urmatoarele efecte:
+
+- publica branch-ul local `alex` pe GitHub;
+- creeaza sau actualizeaza `origin/alex`;
+- trimite commit-urile branch-ului `alex`;
+- nu modifica direct `main`;
+- nu schimba fisierele locale ale celeilalte persoane;
+- configureaza tracking-ul, astfel incat ulterior `git push` si `git pull`
+  sa stie automat ce branch remote sa foloseasca.
+
+Prin urmare, doua persoane pot lucra simultan pe branch-uri diferite fara sa
+isi suprascrie direct modificarile. `main` se schimba numai printr-un merge
+aprobat, de preferat prin Pull Request.
+
+### 16.10 Descarcarea lucrului pe un alt PC
+
+Daca repository-ul nu exista inca pe celalalt PC:
+
+```bash
+git clone https://github.com/ORGANIZATIE/REPOSITORY.git
+cd REPOSITORY
+git fetch origin
+git branch -a
+git switch -c alex --track origin/alex
+```
+
+Daca repository-ul exista deja:
+
+```bash
+cd REPOSITORY
+git fetch origin
+git switch -c alex --track origin/alex
+```
+
+Daca branch-ul local exista deja, se foloseste:
+
+```bash
+git switch alex
+git pull --ff-only
+```
+
+`git fetch` descarca informatii si commit-uri noi, dar nu schimba branch-ul
+curent. `git pull` descarca si integreaza modificarile in branch-ul curent,
+de aceea trebuie verificat intotdeauna pe ce branch se afla utilizatorul:
+
+```bash
+git status
+git branch --show-current
+```
+
+### 16.11 Ce poate face cealalta persoana cu branch-ul tau
+
+Cealalta persoana poate vedea branch-ul publicat:
+
+```bash
+git fetch origin
+git branch -a
+git log --oneline origin/alex
+git diff origin/main..origin/alex
+```
+
+Poate descarca branch-ul ca branch local:
+
+```bash
+git switch -c alex --track origin/alex
+```
+
+Totusi, nu este recomandat ca amandoi sa faceti commit-uri pe `alex`.
+Daca persoana a doua vrea sa continue lucrul tau, este mai sigur sa creeze
+un branch propriu pornind din branch-ul tau:
+
+```bash
+git fetch origin
+git switch -c feature/protocol origin/alex
+git push -u origin feature/protocol
+```
+
+Astfel istoricul devine:
+
+```text
+main
+  └── alex
+        └── feature/protocol
+```
+
+Alternativ, poate prelua un singur commit cu `cherry-pick`:
+
+```bash
+git log --oneline origin/alex
+git switch feature/protocol
+git cherry-pick <commit-hash>
+```
+
+Pentru review se poate deschide un Pull Request:
+
+```text
+alex -> main
+```
+
+sau:
+
+```text
+feature/protocol -> main
+```
+
+Persoana care are permisiuni de scriere poate modifica tehnic branch-ul tau,
+dar acest lucru trebuie evitat pentru a pastra ownership-ul clar. Fiecare
+persoana ar trebui sa aiba propriul branch, iar colaborarile sa se faca prin
+Pull Request-uri sau prin branch-uri derivate.
+
+### 16.12 Sincronizarea dupa merge
+
+Dupa ce un branch este integrat in `main`, celalalta persoana trebuie sa isi
+actualizeze informatiile locale:
+
+```bash
+git fetch origin
+git switch main
+git pull --ff-only origin main
+```
+
+Daca branch-ul propriu contine in continuare lucru neintegrat:
+
+```bash
+git switch alex
+git rebase origin/main
+```
+
+Rebase-ul se face numai pe branch-ul propriu, nu pe un branch partajat.
+Daca rebase-ul a rescris commit-urile deja publicate, actualizarea remote se
+face precaut:
+
+```bash
+git push --force-with-lease origin alex
+```
+
+`--force-with-lease` este preferabil lui `--force`, deoarece refuza
+suprascrierea daca altcineva a publicat intre timp commit-uri noi pe acel
+branch.
+
+### 16.13 Ce garanteaza si ce nu garanteaza branch-urile
+
+Branch-urile diferite garanteaza izolarea modificarilor pana la integrare:
+
+- fiecare persoana poate modifica, compila si testa independent;
+- un commit pe branch-ul propriu nu ajunge automat in `main`;
+- un `push` pe branch-ul propriu nu schimba branch-ul celeilalte persoane;
+- fiecare Pull Request poate fi revizuit separat.
+
+Branch-urile nu elimina conflictele pentru totdeauna. Daca ambele persoane
+modifica aceleasi linii din `Server.cpp`, conflictul poate aparea la merge sau
+la rebase. Pentru reducerea riscului:
+
+- impartiti fisierele si responsabilitatile inainte de implementare;
+- pastrati commit-urile mici;
+- sincronizati branch-urile frecvent;
+- evitati reformatarea unui fisier pe care il modifica si cealalta persoana;
+- integrati mai intai contractele comune, apoi functionalitatile dependente.
+
+### 16.14 Workflow complet pentru doua persoane
+
+Persoana A:
+
+```bash
+git switch main
+git pull --ff-only origin main
+git switch -c alex
+# modificari si teste
+git add .
+git commit -m "fix: improve TCP framing"
+git push -u origin alex
+```
+
+Persoana B:
+
+```bash
+git switch main
+git pull --ff-only origin main
+git switch -c maria
+# modificari si teste
+git add .
+git commit -m "feat: validate IRC nicknames"
+git push -u origin maria
+```
+
+Integrarea se face prin:
+
+```text
+Pull Request: alex -> main
+Pull Request: maria -> main
+review incrucisat
+build si teste
+merge in main
+```
+
+Dupa primul merge, persoana care mai are lucru neintegrat executa:
+
+```bash
+git fetch origin
+git switch maria
+git rebase origin/main
+```
+
+Daca apar conflicte, acestea se rezolva manual doar in fisierele indicate de
+Git, apoi:
+
+```bash
+git add <fisier-rezolvat>
+git rebase --continue
+make re
+git push --force-with-lease origin maria
+```
+
+Rezultatul este un workflow in care `main` ramane ramura comuna, iar fiecare
+persoana lucreaza independent pana cand modificarile sunt verificate si
+integrate controlat.
