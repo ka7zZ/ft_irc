@@ -1,5 +1,5 @@
 #include "../headers/Server.hpp"
-#include "../headers/TCPSocket.hpp"
+#include "../headers/Socket.hpp"
 #include "../headers/Lexer.hpp"
 #include "../headers/ASTParser.hpp"
 
@@ -69,13 +69,14 @@ void	Server::acceptClient()
 {
 	struct sockaddr_in	clientAddr;
 	socklen_t			clientLen = sizeof(clientAddr);
+
 	int					clientFd = accept(_serverFd, (struct sockaddr*)&clientAddr, &clientLen);
 
 	if (clientFd < 0)
 		return;
 	fcntl(clientFd, F_SETFL, O_NONBLOCK);
 
-	TCPSocket* socket = new TCPSocket(clientFd);
+	Socket* socket = new Socket(clientFd);
 	User* user = new User(clientFd, socket);
 
 	_users[clientFd] = user;

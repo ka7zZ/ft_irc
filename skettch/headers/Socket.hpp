@@ -1,16 +1,16 @@
-#ifndef TCPSOCKET_HPP
-# define TCPSOCKET_HPP
+#ifndef Socket_HPP
+# define Socket_HPP
 
 # include "ISocket.hpp"
 
-class TCPSocket : public ISocket
+class Socket : public ISocket
 {
 	private:
 		int	_fd;
 
 	public:
-		explicit	TCPSocket(int fd);
-		virtual ~TCPSocket();
+		explicit	Socket(int fd);
+		virtual ~Socket();
 
 		int	getFd() const;
 		ssize_t	send(const void* data, size_t size);
