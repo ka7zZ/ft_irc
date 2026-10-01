@@ -1,8 +1,17 @@
 # include "Server.hpp"
+# include <sys/socket.h>	// sockets
+# include <arpa/inet.h>		// htons
+# include <fcntl.h>			// fcntl
+# include <iostream>		// containers
+# include <cstring>			// memset
+# include <unistd.h>		// close fds
+# include <cerrno>			// EINTR, errno
+# include <stdexcept>		// throw errors
+# include <csignal>			// sig_atomic_t
 
 extern volatile sig_atomic_t	g_serverRunning;
 
-Server::Server(int port) : _port(port), _serverSocket(-1) {}
+Server::Server(int port) : _port(port), _serverFd(-1) {}
 
 Server::~Server()
 {
@@ -11,14 +20,21 @@ Server::~Server()
 
 // PRIVATE COMMANDS
 
-// 					SERVER RUN/CLOSE UTILS
-void    Server::reconstructPollFd()
+// 					SERVER UTILS
+
+void	Server::disconnectClient(int fd, const std::string& reason) {
+	std::cout << "[fd #" << fd << "] Disconnected: " << reason << std::endl;
+	removeClient(fd);
+	
+}
+
+void    Server::rebuildPollFds()
 {
 	_pollSockets.clear();
 
 	// INSERT THE LISTENER AS FIRST POSITION
 	struct pollfd	serverPoll;
-	serverPoll.fd = _serverSocket;
+	serverPoll.fd = _serverFd;
 	serverPoll.events = POLLIN;
 	serverPoll.revents = 0;
 	_pollSockets.push_back(serverPoll);
@@ -35,79 +51,110 @@ void    Server::reconstructPollFd()
 	
 }
 
-void	Server::processingEvents()
+void	Server::handlePollEvents()
 {
 	for (size_t i = 0; i < _pollSockets.size(); i++) {
-		int	currentSocket = _pollSockets[i].fd;
-		short	revents = _pollSockets[i].revents;
+		const int	currentFd = _pollSockets[i].fd;
+		const short	revents = _pollSockets[i].revents;
 
 		// CHECKING RECEIVED EVENTS
 		if (revents == 0)
-			continue;
+			continue ;
+		// CHECKING IF THE CLIENT IS STILL CONNECTED
+		if (currentFd != _serverFd && getClientBySocket(currentFd) == NULL)
+			continue ;
 		// CHECKING FOR FATAL ERRORS
 		if (revents & (POLLERR | POLLNVAL)) {
-			if (currentSocket != _serverSocket) {
-				std::cout << "ERROR: Socket " << currentSocket << " will be deleted." << std::endl;
-				removeClient(currentSocket);
-			}
+			if (currentFd != _serverFd)
+				disconnectClient(currentFd, "socket error");
 			continue ;
 		}
 		// READING DATA FROM EVENT
 		if (revents & POLLIN) {
 			// IF SERVER SOCKET HAS POLLIN -> SOMEBODY IS TRYING TO CONNECT
 			// ELSE SOMEBODY CONNECTED IS INTERACTING WITH THE SERVER
-			if (currentSocket == _serverSocket)
+			if (currentFd == _serverFd)
 				registerClient();
 			else
-				handleClientData(currentSocket);
+				handleClientData(currentFd);
+			continue ;
 		}
 		// PREMATURE ENDING CONNECTION
-		if ((revents & POLLHUP) && !(revents & POLLIN)) {
-			if (currentSocket != _serverSocket) {
-				User* usr = getClientBySocket(currentSocket);
-				if (usr)
-					std::cout << "[" << usr->getNickname() << "]" << " Disconnected." << std::endl;
-				else
-					std::cout << "[UNKNOWN USER] Disconnected." << std::endl;
-				removeClient(currentSocket);
-			}
+		if ((revents & POLLHUP) && currentFd != _serverFd) {
+			disconnectClient(currentFd, "connection closed by peer.");
 		}
 	}
 }
 
-void	Server::closeServer()
+void	Server::shutdownServer()
 {
 	std::map<int, User>::iterator	it;
-	int								clientSocket;
 
 	for (it = _users.begin(); it != _users.end(); ++it) {
-		clientSocket = it->first;
 		close(it->first);
 	}
 	_users.clear();
 	_pollSockets.clear();
-	std::cout << "Successfully closed client's socket" << std::endl;
-	if (_serverSocket != -1)
-		close(_serverSocket);
+	std::cout << "Successfully closed all sockets." << std::endl;
+	if (_serverFd != -1) {
+		close(_serverFd);
+		_serverFd = -1;
+	}
 	std::cout << "Server closed." << std::endl;
 }
 
-// 					SERVER INIT UTILS
+bool	Server::exceedsPendingLimit(size_t bytesRead, size_t maxBytes) {
+	return bytesRead > maxBytes;
+}
+
+bool	Server::extractValidData(User *target)
+{
+	std::string			rawLine;
+	const int			fd = target->getSocket();
+	size_t				pos;
+
+	while ((pos = target->getBuffer().find('\n')) != std::string::npos)
+	{
+		rawLine = target->getBuffer().substr(0, pos);
+		target->eraseBuffer(pos + 1);
+		if (!rawLine.empty() && 
+			rawLine[rawLine.size() - 1] == '\r'
+		)
+			rawLine.erase(rawLine.size() - 1);
+		// PREVENT BUFFER OVERFLOW: 512 max octet per message permitted by IRC; 2 - '\r' + '\n'
+		if (rawLine.size() + 2 > 512) {
+			disconnectClient(fd, "number of octets above limit");
+			return false;
+		} else if (rawLine.empty()) {
+			// ITERATING AGAIN
+			continue ;
+		}
+		// PARSING
+		
+		// DISPATCH
+
+		// SAFETY CASE OF COMMAND QUIT
+		if (getClientBySocket(fd) == NULL)
+			return false;
+	}
+	return true;
+}
+
 bool	Server::passCreateErrors()
 {
-	if (_serverSocket < 0) {
+	if (_serverFd < 0) {
 		std::cerr << "ERROR: Server socket assigning failure." << std::endl;
 		return false;
 	}
 	// SETTING SOCKET OPTION TO IMMEDIATELY REUSE THE PORT
 	int opt = 1;
-	if (setsockopt(_serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+	if (setsockopt(_serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
 		std::cerr << "ERROR: setsockopt(SO_REUSEADDR)." << std::endl;
 		return false;
 	}
 	// SETTING NON_BLOCKING SOCKET
-	if (fcntl(_serverSocket, F_SETFL, O_NONBLOCK) < 0) {
-		std::cerr << "ERROR: Unable to set non-blocking socket" << std::endl;
+	if (fcntl(_serverFd, F_SETFL, O_NONBLOCK) < 0) {
+		std::cerr << "ERROR: Unable to set non-blocking server socket" << std::endl;
 		return false;
 	}
 	return true;
@@ -115,11 +162,11 @@ bool	Server::passCreateErrors()
 
 bool	Server::passBindListenErrors(sockaddr_in* serverAddress)
 {
-	if (bind(_serverSocket, (struct sockaddr*)serverAddress, sizeof(*serverAddress)) < 0) {
+	if (bind(_serverFd, (struct sockaddr*)serverAddress, sizeof(*serverAddress)) < 0) {
 		std::cerr << "ERROR: Binding unsuccessfully." << std::endl;
 		return false;
 	}
-	if (listen(_serverSocket, SOMAXCONN) < 0) {
+	if (listen(_serverFd, SOMAXCONN) < 0) {
 		std::cerr << "ERROR: Listening unable." << std::endl;
 		return false;
 	}
@@ -130,7 +177,7 @@ bool	Server::passBindListenErrors(sockaddr_in* serverAddress)
 bool	Server::initServer()
 {
 	// CREATE SERVER SOCKET
-	_serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+	_serverFd = socket(AF_INET, SOCK_STREAM, 0);
 	if (!passCreateErrors())
 		return false;
 	
@@ -151,177 +198,131 @@ int		Server::handle_connections()
 {
 	struct sockaddr_in	clientAddress;
 	socklen_t			clientLength = sizeof(clientAddress);
-	int					clientSocket;
-	unsigned long		clientIp;
+	int					clientFd;
 	unsigned short		clientPort;
 
-	// ACCEPTING THE CONNECT ATTEMPT
-	clientSocket = accept(_serverSocket, (struct sockaddr*)&clientAddress, &clientLength);
-	if (clientSocket < 0)
+	clientFd = accept(_serverFd, (struct sockaddr*)&clientAddress, &clientLength);
+	if (clientFd < 0)
 	{
 		std::cout << "ERROR: Client socket." << std::endl;
 		return -1;
 	}
-
-	// RETRIEVE CLIENT IP WITH IP DATATYPE
-	clientIp = ntohl(clientAddress.sin_addr.s_addr);
-
-	// NEXT WE'LL SET THE LIMIT OF ATTEMPTS TO 3
-	// [] OPERATOR WILL AUTOMATICALLY INSERT THE KEY AND INITIALIZE ITS VALUE WITH 0 
-	if (_failedAttempts[clientIp] >= 3)
-	{
-		std::cout << "ERROR: Connection denied: Too many attempts." << std::endl;
-		close(clientSocket);
-		return -1;
-	}
-
-	// WE ARE INCREMENTING THE ATTEMPT
-	_failedAttempts[clientIp] += 1;
-
-	// OBTAINING PORT & IP - LOCALLY WITH INET_NTOA
 	clientPort = ntohs(clientAddress.sin_port);
 	std::cout << "[Attempt to connect] " << inet_ntoa(clientAddress.sin_addr) << ":" << clientPort 
-			<< "(" << _failedAttempts[clientIp] << ")." 
 			<< std::endl;
-	return clientSocket;
+	return clientFd;
 }
 
 void	Server::registerClient()
 {
-	int	clientFd;
+	int	clientFd = handle_connections();
 	
-	clientFd = handle_connections();
 	if (clientFd < 0)
 		return ;
+	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0) {
+        std::cerr << "ERROR: Unable to set non-blocking client socket" << std::endl;
+        close(clientFd);
+        return ;
+    }
 	_users.insert(std::make_pair(clientFd, User(clientFd)));
-
-	std::cout << "[SOCKET " << clientFd << "] Successfully registered." << std::endl;
-	
-	struct pollfd	pfd;
-	pfd.fd = clientFd;
-	pfd.events = POLLIN;
-	pfd.revents = 0;
-	_pollSockets.push_back(pfd);
+	std::cout << "[SOCKET #" << clientFd << "] Successfully registered." << std::endl;
 }
 
 void	Server::removeClient(int clientFd)
 {
 	std::map<int, User>::iterator	it = _users.find(clientFd);
-	std::vector<struct pollfd>::iterator	psi;
 	
 	// REMOVE USER FROM REGISTRY
-	if (it != _users.end()) {
-		std::cout << "[SOCKET " << clientFd << "] Successfully removed." << std::endl
-		_users.erase(it);
-	}
-	// REMOVE SOCKET FROM POLL
-	for (psi = _pollSockets.begin(); psi != _pollSockets.end(); ++psi)
-	{
-		if (psi->fd = clientFd) {
-			_pollSockets.erase(psi);
-			break ;
-		}
-	}
+	if (it == _users.end()) 
+		return ;
+	_users.erase(it);
+	close(clientFd);
 }
 
 void	Server::handleClientData(int clientFd)
 {
-	User*	target;
-	int		maxBytes = 4096;
+	static const size_t	RECV_SIZE = 1024;
+	static const size_t	MAX_PENDING = 512;
+	User*	target = getClientBySocket(clientFd);
+	char	buffer[RECV_SIZE];
 	ssize_t bytesRead;
-	char	buffer[maxBytes];
-	std::string	rawData;
-	std::string	delimiter = "\r\n";
-	size_t	delimiterPos;
 
-	while (true)
-	{
-		bytesRead = recv(clientFd, buffer, sizeof(buffer), 0);
-		// CONDITIONAL CASE OF DISCONNECTED
-		if (bytesRead == 0) {
-			removeClient(clientFd);
-			return ;
-		}
-		// CONDITIONAL CASE OF FRAGMENTED NETWORK PACKAGE
-		if (bytesRead < 0) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
-				break ;
-			else {
-				removeClient(clientFd);
-				return ;
-			}
-		}
-		// COLLECT DATA PHASE
-		target = getClientBySocket(clientFd);
-		target->appendBuffer(buffer);
-		// ANTI FLOOD PROTECTION
-		if (target->getBuffer().size() > maxBytes) {
-			std::cout << "ERROR: Message too long for socket #" << clientFd
-					<< ": Client disconnected."
-			removeClient(clientFd);
-		}
-		// EXTRACT VALID DATA
-		delimiterPos = target->getBuffer().find(delimiter);
-		while (delimiterPos != std::string::npos)
-		{
-			rawData = target->getBuffer().substr(0, delimiterPos);
-			// PREVENT BUFFER OVERFLOW/SPAM
-			if (rawData.size() + 2 > 512) {
-				std::cout << "ERROR: Attack prevented from socket #" << clientFd
-						<< ". Client disconnected." << std::endl;
-				removeClient(clientFd);
-				return ;
-			}
-			// PARSING
-			
-			// DISPATCH
-
-			// SAFETY CASE OF COMMAND QUIT
-			if (getClientBySocket(clientFd) == NULL)
-				return ;
-		}
+	// SAFETY CONDITIONAL
+	if (target == NULL)
+		return ;
+	bytesRead = recv(clientFd, buffer, sizeof(buffer), 0);
+	if (bytesRead < 0) {
+		disconnectClient(clientFd, "recv error");
+		return ;
+	}
+	if (bytesRead == 0) {
+		disconnectClient(clientFd, "peer closed connection");
+		return ;
+	}
+	// COLLECT DATA
+	target->appendBuffer(std::string(buffer, bytesRead));
+	if (!extractValidData(target)) {
+		return ;
+	}
+	// CHECK FOR FLOOD/SPAM MESSAGE
+	if (exceedsPendingLimit(target->getBuffer().size(), MAX_PENDING)) {
+		disconnectClient(clientFd, "spam");
+		return ;
 	}
 }
 
-User*	Server::getClientBySocket(int clientSocket);
-User*	Server::getClientByNickname(const std::string& nickname);
+User*	Server::getClientBySocket(int fd)
+{
+	std::map<int, User>::iterator it = _users.find(fd);
 
+	if (it == _users.end())
+		return NULL;
+	return &it->second;
+}
 
-void	Server::sendData(int targetFd, const std::string& message);
-void	Server::sendMessageAll(int senderFd, const std::string& message);
-void	Server::sendMessagePrivate(int senderFd, int receiverFd, const std::string& message);
-void	Server::sendMessageChannel(int senderFd, const std::string& channelName, const std::string& message);
+User*	Server::getClientByNickname(const std::string& nickname)
+{
+	std::map<int, User>::iterator	it;
+
+	for (it = _users.begin(); it != _users.end(); it++) {
+		if (it->second.getNickname() == nickname) {
+			return &it->second;
+		}
+	}
+	return NULL;
+}
+
+// void	Server::sendData(int targetFd, const std::string& message);
+// void	Server::sendMessageAll(int senderFd, const std::string& message);
+// void	Server::sendMessagePrivate(int senderFd, int receiverFd, const std::string& message);
+// void	Server::sendMessageChannel(int senderFd, const std::string& channelName, const std::string& message);
 
 // PUBLIC COMMANDS
 
 void	Server::run()
 {
 	if (!initServer())
-	{
-		std::cout << "ERROR: Initializing server failed." << std::endl;
-		return ;
-	}
+		throw std::runtime_error("Initializing server failed.");
 
 	while (g_serverRunning)
 	{
 		// RECONSTRUCT POLLFD
-		reconstructPollFd();
+		rebuildPollFds();
 
 		// CHECK EVENTS
-		int pollCount = poll(&_pollSockets[0], _pollSockets.size(), -1);
-		if (pollCount < 0)
+		if (poll(&_pollSockets[0], _pollSockets.size(), -1) < 0)
 		{
 			// CATCHING THE SIGINT AND RELOAD LOOP
 			if (errno == EINTR)
 				continue ;
-			break ;
+			throw std::runtime_error("poll failed.");
 		}
 		// PROCESSING EVENTS
-		processingEvents();
+		handlePollEvents();
 	}
 }
 
 void	Server::stop()
 {
-	closeSockets();
+	shutdownServer();
 }

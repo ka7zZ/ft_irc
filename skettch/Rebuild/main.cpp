@@ -10,7 +10,8 @@ void signalHandler(int signum)
 {
     if (signum == SIGINT)
     {
-        std::cout << "\n[SIGNAL: " << signum << " RECEIVED] Shutting down the server..." << std::endl;
+        const char  msg[] = "\nSIGINT: Shutting down...\n";
+        write(STDOUT_FILENO, msg, sizeof(msg) - 1);
         g_serverRunning = 0;
     }
 }
@@ -37,9 +38,8 @@ int main(int argc, char** argv)
     }
     catch (const std::exception& e)
     {
-        std::cerr << "[ERROR MAIN]: " << e.what() << std::endl;
+        std::cerr << "ERROR: " << e.what() << std::endl;
         return 1;
     }
-    std::cout << "Successfully shutdown" << std::endl;
     return 0;
 }

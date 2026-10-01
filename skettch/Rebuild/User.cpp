@@ -1,10 +1,10 @@
 #include "User.hpp"
 
-User::User() {}
+User::User() : _socketFd(-1), _isAuth(false) {}
 
-User::User(int socketFd) : _socketFd(socketFd) {}
+User::User(int socketFd) : _socketFd(socketFd), _isAuth(false) {}
 
-int	User::getSocketFd() const { return _socketFd; }
+int	User::getSocket() const { return _socketFd; }
 
 const std::string&	User::getNickname() const { return _nickname; }
 
@@ -26,6 +26,6 @@ void	User::setAuthenticated(bool auth) { _isAuth = auth; }
 
 void	User::appendBuffer(const std::string& buf) { _inputBuffer += buf; }
 
-void    User::eraseBuffer(size_t start, size_t length) { _inputBuffer.erase(start, length); }
+void    User::eraseBuffer(size_t n) { _inputBuffer.erase(0, n); }
 
 void	User::clearBuffer() { _inputBuffer.clear(); }

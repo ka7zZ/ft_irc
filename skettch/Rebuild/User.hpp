@@ -19,7 +19,7 @@ class User
 		explicit User(int socketFd);
 
 		// GETTERS
-		int	getSocketFd() const;
+		int	getSocket() const;
 		const std::string&	getNickname() const;
 		const std::string&	getUsername() const;
 		const std::string&	getRealname() const;
@@ -32,7 +32,7 @@ class User
 		void	setAuthenticated(bool auth);
 		// BUFFER MANIPULATION
 		void	appendBuffer(const std::string& buf);
-		void	eraseBuffer(size_t start, size_t length);
+		void	eraseBuffer(size_t n);
 		void	clearBuffer();
 		
 
