@@ -1,0 +1,25 @@
+server.cpp: In constructor ‘Server::Server(size_t, std::string)’:
+server.cpp:192:41: error: ‘memset’ was not declared in this scope
+  192 |                                         memset(tmp_buffer, 0, sizeof(tmp_buffer));
+      |                                         ^~~~~~
+server.cpp:2:1: note: ‘memset’ is defined in header ‘<cstring>’; did you forget to ‘#include <cstring>’?
+    1 | #include "irc.hpp"
+  +++ |+#include <cstring>
+    2 | 
+server.cpp:199:124: error: ‘buffer’ was not declared in this scope; did you mean ‘setbuffer’?
+  199 |                                                 std::cout << "I receive something from client ID " <<  actual_fd << " " << buffer;
+      |                                                                                                                            ^~~~~~
+      |                                                                                                                            setbuffer
+server.cpp:203:64: error: ‘cls’ was not declared in this scope; did you mean ‘close’?
+  203 |                                                 while ( (pos = cls[actual_fd].get_buffer().find("\r\n")) != std::string::npos) // i found the first command line
+      |                                                                ^~~
+      |                                                                close
+server.cpp:211:80: error: ‘client’ was not declared in this scope; did you mean ‘Client’?
+  211 |                                                         generic_handler(g_cmd, client[actual_fd]);
+      |                                                                                ^~~~~~
+      |                                                                                Client
+server.cpp: At global scope:
+server.cpp:239:1: error: expected declaration before ‘}’ token
+  239 | }
+      | ^
+make: *** [Makefile:2: all] Error 1
