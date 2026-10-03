@@ -11,7 +11,11 @@
 
 extern volatile sig_atomic_t	g_serverRunning;
 
-Server::Server(int port) : _port(port), _serverFd(-1) {}
+Server::Server(int port, const std::string& password)
+	: _port(port),
+	_password(password),
+	_serverFd(-1),
+	_disconnectCurrentUser(false) {}
 
 Server::~Server()
 {
@@ -129,10 +133,11 @@ bool	Server::extractValidData(User *target)
 			// ITERATING AGAIN
 			continue ;
 		}
-		// PARSING
-		
 		// DISPATCH
-
+		
+		// CASE OF NOT PASS
+		if (_disconnectCurrentUser == true)
+			disconnectClient(fd, "wrong password");
 		// SAFETY CASE OF COMMAND QUIT
 		if (getClientBySocket(fd) == NULL)
 			return false;
@@ -220,10 +225,10 @@ void	Server::registerClient()
 	if (clientFd < 0)
 		return ;
 	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0) {
-        std::cerr << "ERROR: Unable to set non-blocking client socket" << std::endl;
-        close(clientFd);
-        return ;
-    }
+		std::cerr << "ERROR: Unable to set non-blocking client socket" << std::endl;
+		close(clientFd);
+		return ;
+	}
 	_users.insert(std::make_pair(clientFd, User(clientFd)));
 	std::cout << "[SOCKET #" << clientFd << "] Successfully registered." << std::endl;
 }
@@ -242,6 +247,7 @@ void	Server::removeClient(int clientFd)
 void	Server::handleClientData(int clientFd)
 {
 	static const size_t	RECV_SIZE = 1024;
+	// MAX OCTETS TO RECEIVE
 	static const size_t	MAX_PENDING = 512;
 	User*	target = getClientBySocket(clientFd);
 	char	buffer[RECV_SIZE];
@@ -280,17 +286,7 @@ User*	Server::getClientBySocket(int fd)
 	return &it->second;
 }
 
-User*	Server::getClientByNickname(const std::string& nickname)
-{
-	std::map<int, User>::iterator	it;
-
-	for (it = _users.begin(); it != _users.end(); it++) {
-		if (it->second.getNickname() == nickname) {
-			return &it->second;
-		}
-	}
-	return NULL;
-}
+void	Server::setPassword(const std::string& password) { _password = password; }
 
 // void	Server::sendData(int targetFd, const std::string& message);
 // void	Server::sendMessageAll(int senderFd, const std::string& message);
@@ -326,3 +322,21 @@ void	Server::stop()
 {
 	shutdownServer();
 }
+
+const std::string&	Server::getPassword() { return _password; }
+
+const bool	Server::getDisconnect() { return _disconnectCurrentUser; }
+
+User*	Server::getClientByNickname(const std::string& nickname)
+{
+	std::map<int, User>::iterator	it;
+
+	for (it = _users.begin(); it != _users.end(); it++) {
+		if (it->second.getNickname() == nickname) {
+			return &it->second;
+		}
+	}
+	return NULL;
+}
+
+void	Server::setDisconnect(bool disconnectCurrentUser) { _disconnectCurrentUser = disconnectCurrentUser; }

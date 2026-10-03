@@ -12,12 +12,15 @@
 class Server
 {
 	private:
+		std::string _password;
 		int			_port;
 		int			_serverFd;
+		bool		_disconnectCurrentUser;
 
 		std::map<int, User>				_users;
+		std::map<std::string, User>     _userPasswords;
 		std::vector<struct pollfd>		_pollSockets;
-		// CommandDispatcher				_dispatcher;
+		// Dispatcher				    _dispatcher;
 
 		// OCF
 		Server(const Server&);
@@ -43,7 +46,7 @@ class Server
 
 		// GETTING USERS
 		User*	getClientBySocket(int fd);
-		User*	getClientByNickname(const std::string& nickname);
+		
 
 		// HANDLING RAW DATA
 		void	handleClientData(int clientFd);
@@ -56,9 +59,16 @@ class Server
 		
 
 	public:
-		explicit Server(int port);
+		explicit Server(int port, const std::string& password);
 		~Server();
 
-		void	run();
-		void	stop();
+		void				run();
+		void				stop();
+
+		const std::string&	getPassword() const;
+		const bool			getDisconnect() const;
+
+		void				setPassword(const std::string& password);
+		void				setDisconnect(bool disconnectCurrentUser);
+		User*				getClientByNickname(const std::string& nickname);
 };
