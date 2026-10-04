@@ -12,8 +12,8 @@
 class Server
 {
 	private:
-		std::string _password;
 		int			_port;
+		std::string _password;
 		int			_serverFd;
 		bool		_disconnectCurrentUser;
 
@@ -44,12 +44,12 @@ class Server
 		void	registerClient();
 		void	removeClient(int clientFd);
 
+		// HANDLING RAW DATA
+		void	handleClientData(int clientFd);
+
 		// GETTING USERS
 		User*	getClientBySocket(int fd);
 		
-
-		// HANDLING RAW DATA
-		void	handleClientData(int clientFd);
 
 		// COMMUNICATION
 		// void	sendData(int targetFd, const std::string& message);
@@ -66,9 +66,9 @@ class Server
 		void				stop();
 
 		const std::string&	getPassword() const;
-		const bool			getDisconnect() const;
+		bool				getDisconnect();
+		User*				getClientByNickname(const std::string& nickname);
 
 		void				setPassword(const std::string& password);
 		void				setDisconnect(bool disconnectCurrentUser);
-		User*				getClientByNickname(const std::string& nickname);
 };

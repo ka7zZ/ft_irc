@@ -46,14 +46,9 @@ class	Dispatcher {
 		void	handleTopic(Server*, User* , std::map<TokenType, std::string>*);
 		void	handleMode(Server*, User* , std::map<TokenType, std::string>*);
 
-		"PASS",
-		"NICK",
-		"USER",
-		"JOIN",
-		"PRIVMSG",
-		"KICK",
-		"INVITE",
-		"TOPIC",
-		"MODE"
+		public:
+			explicit Dispatcher(const std::string& rawData);
+			~Dispatcher();
 
+			
 };

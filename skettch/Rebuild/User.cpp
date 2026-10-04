@@ -1,8 +1,18 @@
 #include "User.hpp"
 
-User::User() : _socketFd(-1), _isAuth(false), _passOk(false), _isNamed(false) {}
+User::User() :
+    _socketFd(-1),
+    _hasPass(false),
+    _hasNick(false),
+    _hasUser(false),
+    _isAuth(false) {}
 
-User::User(int socketFd) : _socketFd(socketFd), _isAuth(false), _passOk(false), _isNamed(false) {}
+User::User(int socketFd) :
+    _socketFd(socketFd),
+    _hasPass(false),
+    _hasNick(false),
+    _hasUser(false),
+    _isAuth(false) {}
 
 int	User::getSocket() const { return _socketFd; }
 
@@ -10,29 +20,27 @@ const std::string&	User::getNickname() const { return _nickname; }
 
 const std::string&	User::getUsername() const { return _username; }
 
-const std::string&	User::getPassword() const { return _password; }
-
 const std::string&	User::getBuffer() const { return _inputBuffer; }
 
-bool	User::isAuth() const { return _isAuth; }
+bool	User::getPassState() const { return _hasPass; }
 
-bool	User::isNamed() const { return _isNamed; };
+bool	User::getNickState() const { return _hasNick; };
 
-bool	User::passOk() const { return _passOk; }
+bool	User::getUserState() const { return _hasUser; };
+
+bool	User::getAuthState() const { return _isAuth; }
 
 void	User::setNickname(const std::string& nickname) { _nickname = nickname; }
 
 void	User::setUsername(const std::string& username) { _username = username; }
 
-void	User::setPassword(const std::string& password) { _password = password; }
+void	User::setPassState(bool pass) { _hasPass = pass; }
 
-void	User::setAuthenticated(bool auth) { _isAuth = auth; }
+void	User::setNickState(bool nick) { _hasNick; }
 
-void	User::setAuth(bool isAuth) { _isAuth = isAuth; }
+void	User::setUserState(bool user) { _hasUser; }
 
-void	User::setNamed(bool isNamed) { _isNamed = isNamed; }
-
-void	User::setPassOk(bool passOk) { _passOk = passOk; }
+void	User::setAuthState(bool isAuth) { _isAuth = isAuth; }
 
 void	User::appendBuffer(const std::string& buf) { _inputBuffer += buf; }
 

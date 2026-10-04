@@ -136,8 +136,11 @@ bool	Server::extractValidData(User *target)
 		// DISPATCH
 		
 		// CASE OF NOT PASS
-		if (_disconnectCurrentUser == true)
+		if (_disconnectCurrentUser == true) {
 			disconnectClient(fd, "wrong password");
+			_disconnectCurrentUser = false;
+		}
+			
 		// SAFETY CASE OF COMMAND QUIT
 		if (getClientBySocket(fd) == NULL)
 			return false;
@@ -148,18 +151,18 @@ bool	Server::extractValidData(User *target)
 bool	Server::passCreateErrors()
 {
 	if (_serverFd < 0) {
-		std::cerr << "ERROR: Server socket assigning failure." << std::endl;
+		std::cout << "ERROR: Server socket assigning failure." << std::endl;
 		return false;
 	}
 	// SETTING SOCKET OPTION TO IMMEDIATELY REUSE THE PORT
 	int opt = 1;
 	if (setsockopt(_serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-		std::cerr << "ERROR: setsockopt(SO_REUSEADDR)." << std::endl;
+		std::cout << "ERROR: setsockopt(SO_REUSEADDR)." << std::endl;
 		return false;
 	}
 	// SETTING NON_BLOCKING SOCKET
 	if (fcntl(_serverFd, F_SETFL, O_NONBLOCK) < 0) {
-		std::cerr << "ERROR: Unable to set non-blocking server socket" << std::endl;
+		std::cout << "ERROR: Unable to set non-blocking server socket" << std::endl;
 		return false;
 	}
 	return true;
@@ -168,7 +171,7 @@ bool	Server::passCreateErrors()
 bool	Server::passBindListenErrors(sockaddr_in* serverAddress)
 {
 	if (bind(_serverFd, (struct sockaddr*)serverAddress, sizeof(*serverAddress)) < 0) {
-		std::cerr << "ERROR: Binding unsuccessfully." << std::endl;
+		std::cout << "ERROR: Binding unsuccessfully." << std::endl;
 		return false;
 	}
 	if (listen(_serverFd, SOMAXCONN) < 0) {
@@ -225,7 +228,7 @@ void	Server::registerClient()
 	if (clientFd < 0)
 		return ;
 	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0) {
-		std::cerr << "ERROR: Unable to set non-blocking client socket" << std::endl;
+		std::cout << "ERROR: Unable to set non-blocking client socket" << std::endl;
 		close(clientFd);
 		return ;
 	}
@@ -286,8 +289,6 @@ User*	Server::getClientBySocket(int fd)
 	return &it->second;
 }
 
-void	Server::setPassword(const std::string& password) { _password = password; }
-
 // void	Server::sendData(int targetFd, const std::string& message);
 // void	Server::sendMessageAll(int senderFd, const std::string& message);
 // void	Server::sendMessagePrivate(int senderFd, int receiverFd, const std::string& message);
@@ -323,20 +324,22 @@ void	Server::stop()
 	shutdownServer();
 }
 
-const std::string&	Server::getPassword() { return _password; }
+const std::string&	Server::getPassword() const { return _password; }
 
-const bool	Server::getDisconnect() { return _disconnectCurrentUser; }
+bool	Server::getDisconnect() { return _disconnectCurrentUser; }
 
 User*	Server::getClientByNickname(const std::string& nickname)
 {
 	std::map<int, User>::iterator	it;
 
 	for (it = _users.begin(); it != _users.end(); it++) {
-		if (it->second.getNickname() == nickname) {
+		if (it->second.getNickname(). == nickname) {
 			return &it->second;
 		}
 	}
 	return NULL;
 }
+
+void	Server::setPassword(const std::string& password) { _password = password; }
 
 void	Server::setDisconnect(bool disconnectCurrentUser) { _disconnectCurrentUser = disconnectCurrentUser; }

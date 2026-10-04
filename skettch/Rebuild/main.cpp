@@ -9,11 +9,7 @@ volatile sig_atomic_t	g_serverRunning = 1;
 void signalHandler(int signum)
 {
 	if (signum == SIGINT)
-	{
-		const char  msg[] = "\nSIGINT: Shutting down...\n";
-		write(STDOUT_FILENO, msg, sizeof(msg) - 1);
 		g_serverRunning = 0;
-	}
 }
 
 bool	requiredConditions(int ac, char **argv) {
