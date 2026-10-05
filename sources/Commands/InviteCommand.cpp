@@ -5,20 +5,6 @@
 # include "../../headers/Channel.hpp"
 # include "../../headers/IRCError.hpp"
 
-void	InviteCommand::splitParams(const std::string& list, std::vector<std::string>& out)
-{
-	size_t	start = 0;
-
-	while (start <= list.size())
-	{
-		size_t	comma = list.find_first_of(',', start);
-		if (comma == std::string::npos)
-			comma = list.size();
-		if (comma > start)
-			out.push_back(list.substr(start, comma - start));
-		start = comma + 1;
-	}
-}
 
 bool	InviteCommand::needsRegistration() const { return true; }
 
@@ -26,15 +12,25 @@ size_t	InviteCommand::minParams() const { return 2; }
 
 void	InviteCommand::execute(Server& sv, Client& user, const Message& msg) const
 {
+	const std::string&	nick = msg.params[0].value;
+	const std::string&	ch = msg.params[1].value;
 
-	if (msg.params.size() != minParams())
-		throw IRCError(461, msg.command);
-	if (msg.params[0].value.find_first_of('#') != std::string::npos)
+	Channel*	channel = sv.getChannel(ch);
+	if (channel == NULL)
+		throw IRCError(403);
+	if (!channel->isMember(user.getSocket()))
+		throw IRCError(442, channel->getName());
+	if (!channel->isAdmin(user.getSocket()))
+		throw IRCError(482, user.getNickname());
+
+	Client*	target = sv.getClientByNickname(nick);
+	if (target == NULL)
 		throw IRCError(401, msg.params[0].value);
-
-	const std::string&	userNick = msg.params[0].value;
-	const std::string&	channel = msg.params[1].value;
-	if ()
 	
+	if (channel->getMember(target->getSocket()))
+		throw IRCError(443, target->getNickname());
+	
+	channel->addInvited(target->getSocket());
+	sv.sendTo(user, ":ircserv 341 " + user.getNickname() + " " + nick + " " + ch + "\r\n");
+	sv.sendTo(*target, ":" + user.prefix() + " INVITE " + nick + " " + ch + "\r\n");
 }
-

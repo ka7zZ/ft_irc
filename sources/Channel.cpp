@@ -37,6 +37,8 @@ Client*	Channel::getMemberByNickname(const std::string& nickname) const
 	return NULL;
 }
 
+const std::map<int, Member>	Channel::getAll() const { return _members; }
+
 size_t	Channel::getSize() const { return _members.size(); }
 
 void    Channel::setTopic(const std::string& topic) { _topic = topic; }

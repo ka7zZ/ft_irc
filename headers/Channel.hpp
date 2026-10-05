@@ -28,32 +28,33 @@ class Channel
 
 		explicit	Channel(const std::string& name);
 
-		const std::string&	getName() const;
-		const std::string&	getTopic() const;
-		const std::string&	getKey() const;
-		int					getInvitedFd() const;
-		size_t				getLimit() const;
-		Client*				getMember(int memberFd) const;
-		Client*				getMemberByNickname(const std::string& nickname) const;
-		size_t				getSize() const;
+		const std::string&			getName() const;
+		const std::string&			getTopic() const;
+		const std::string&			getKey() const;
+		int							getInvitedFd() const;
+		size_t						getLimit() const;
+		Client*						getMember(int memberFd) const;
+		Client*						getMemberByNickname(const std::string& nickname) const;
+		const std::map<int, Member>	getAll() const;
+		size_t						getSize() const;
 
-		void				setTopic(const std::string& topic);
-		void				setKey(const std::string& key);
-		void				setInviteOnly(bool inviteOnly);
-		void				setTopicRestricted(bool topicRestricted);
-		void				setLimit(size_t limit);
+		void						setTopic(const std::string& topic);
+		void						setKey(const std::string& key);
+		void						setInviteOnly(bool inviteOnly);
+		void						setTopicRestricted(bool topicRestricted);
+		void						setLimit(size_t limit);
 
-		void				addMember(Client* cl, bool isAdmin);
-		void				removeMember(int fd);
-		void				addInvited(int fd);
-		void				removeInvited(int fd);
-		void				setAdmin(int fd, bool isAdmin);
+		void						addMember(Client* cl, bool isAdmin);
+		void						removeMember(int fd);
+		void						addInvited(int fd);
+		void						removeInvited(int fd);
+		void						setAdmin(int fd, bool isAdmin);
 
-		bool				isMember(int fd) const;
-		bool				isAdmin(int fd) const;
-		bool				isInviteOnly() const;
-		bool				isTopicRestricted() const;
-		bool				isInvited(int fd) const;
+		bool						isMember(int fd) const;
+		bool						isAdmin(int fd) const;
+		bool						isInviteOnly() const;
+		bool						isTopicRestricted() const;
+		bool						isInvited(int fd) const;
 
 };
 

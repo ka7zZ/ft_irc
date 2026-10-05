@@ -45,7 +45,7 @@ void    Server::rebuildPollFds()
 
 	// INSERT ALL THE ACTIVE CLIENTS
 	std::map<int, Client>::iterator it;
-	for (it = _users.begin(); it != _users.end(); ++it) {
+	for (it = _clients.begin(); it != _clients.end(); ++it) {
 		struct pollfd clientPoll;
 		clientPoll.fd = it->first;
 		clientPoll.events = POLLIN;
@@ -98,10 +98,10 @@ void	Server::shutdownServer()
 {
 	std::map<int, Client>::iterator	it;
 
-	for (it = _users.begin(); it != _users.end(); ++it) {
+	for (it = _clients.begin(); it != _clients.end(); ++it) {
 		close(it->first);
 	}
-	_users.clear();
+	_clients.clear();
 	_pollSockets.clear();
 	std::cout << "Successfully closed all sockets." << std::endl;
 	if (_serverFd != -1) {
@@ -228,18 +228,18 @@ void	Server::registerClient()
 		close(clientFd);
 		return ;
 	}
-	_users.insert(std::make_pair(clientFd, Client(clientFd, inet_ntoa(clientAddress.sin_addr))));
+	_clients.insert(std::make_pair(clientFd, Client(clientFd, inet_ntoa(clientAddress.sin_addr))));
 	std::cout << "[SOCKET #" << clientFd << "] Successfully registered." << std::endl;
 }
 
 void	Server::removeClient(int clientFd)
 {
-	std::map<int, Client>::iterator	it = _users.find(clientFd);
+	std::map<int, Client>::iterator	it = _clients.find(clientFd);
 	
 	// REMOVE USER FROM REGISTRY
-	if (it == _users.end()) 
+	if (it == _clients.end()) 
 		return ;
-	_users.erase(it);
+	_clients.erase(it);
 	close(clientFd);
 }
 
@@ -278,18 +278,13 @@ void	Server::handleClientData(int clientFd)
 
 Client*	Server::getClientBySocket(int fd)
 {
-	std::map<int, Client>::iterator it = _users.find(fd);
+	std::map<int, Client>::iterator it = _clients.find(fd);
 
-	if (it == _users.end())
+	if (it == _clients.end())
 		return NULL;
 	return &it->second;
 }
 
-// USED WHENEVER THE SERVER HAS TO COMMUNICATE WITH THE CLIENT
-void	Server::sendTo(Client& cl, const std::string& text)
-{
-	cl.appendOutbuffer(text);
-}
 
 void	Server::sendData(int targetFd)
 {
@@ -336,6 +331,16 @@ void	Server::stop()
 	shutdownServer();
 }
 
+Channel*    Server::getChannel(const std::string& channelName)
+{
+	std::vector<Channel>::iterator  it;
+	for (it = _channels.begin(); it != _channels.end(); it++)
+	{
+		if (it->getName() == channelName)
+			return &(*it);
+	}
+	return NULL;
+}
 const std::string&	Server::getPassword() const { return _password; }
 
 bool	Server::getDisconnect() { return _disconnectCurrentUser; }
@@ -344,7 +349,7 @@ Client*	Server::getClientByNickname(const std::string& nickname)
 {
 	std::map<int, Client>::iterator	it;
 
-	for (it = _users.begin(); it != _users.end(); it++) {
+	for (it = _clients.begin(); it != _clients.end(); it++) {
 		if (it->second.getNickname() == nickname) {
 			return &it->second;
 		}
@@ -355,3 +360,55 @@ Client*	Server::getClientByNickname(const std::string& nickname)
 void	Server::setPassword(const std::string& password) { _password = password; }
 
 void	Server::setDisconnect(bool disconnectCurrentUser) { _disconnectCurrentUser = disconnectCurrentUser; }
+
+bool	Server::isChannel(const std::string& name) const
+{
+	std::vector<Channel>::const_iterator  it;
+	for (it = _channels.begin(); it != _channels.end(); it++)
+	{
+		if (it->getName() == name)
+			return true;
+	}
+	return;
+}
+
+bool	Server::isClient(const std::string& name) const
+{
+	std::map<int, Client>::const_iterator	it;
+
+	for (it = _clients.begin(); it != _clients.end(); it++) {
+		if (it->second.getNickname() == name)
+			return true;
+	}
+	return false;
+}
+
+void	Server::createChannel(Client* cl, const std::string& name)
+{
+	if (isChannel(name))
+		return ;
+	Channel ch(name);
+
+	ch.addMember(cl, true);
+	_channels.push_back(ch);
+}
+
+
+void	Server::sendTo(Client& cl, const std::string& text)
+{
+	cl.appendOutbuffer(text);
+}
+
+void	Server::broadcast(const Channel& ch, const std::string& msg, int exceptFd)
+{
+	if (!isChannel(ch.getName()))
+		return ;
+	
+	std::map<int, Member>::const_iterator	it = ch.getAll().begin();
+	while (it != ch.getAll().end())
+	{
+		if (exceptFd > 0 && it->first == exceptFd)
+			continue ;
+		sendTo(*it->second.cl, msg);
+	}
+}

@@ -12,7 +12,7 @@ class IRCError: public std::exception {
 		std::string	_arg;
 
 	public:
-		IRCError(int code, const std::string& arg);
+		IRCError(int code, const std::string& arg = "");
 		virtual ~IRCError()	throw();
 
         // CONSTRUCT THE ERROR STRING

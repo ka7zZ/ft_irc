@@ -3,6 +3,7 @@
 
 // # include "CommandDispatcher.hpp"
 # include "Client.hpp"
+# include "Channel.hpp"
 # include <map>				// containers
 # include <vector>			// containers
 # include <string>			// std::string
@@ -19,9 +20,10 @@ class Server
 		int			_serverFd;
 		bool		_disconnectCurrentUser;
 
-		std::map<int, Client>				_users;
+		std::map<int, Client>				_clients;
 		std::map<std::string, Client>		_userPasswords;
 		std::vector<struct pollfd>			_pollSockets;
+		std::vector<Channel>                _channels;
 		// Dispatcher						_dispatcher;
 
 		// OCF
@@ -53,7 +55,7 @@ class Server
 		
 
 		// COMMUNICATION
-		void	sendTo(Client& cl, const std::string& text);
+		
 		void	sendData(int targetFd);
 		// void	sendMessageAll(int senderFd, const std::string& message);
 		// void	sendMessagePrivate(int senderFd, int receiverFd, const std::string& message);
@@ -67,12 +69,21 @@ class Server
 		void				run();
 		void				stop();
 
+		Channel*			getChannel(const std::string& channelName);
 		const std::string&	getPassword() const;
 		bool				getDisconnect();
 		Client*				getClientByNickname(const std::string& nickname);
 
 		void				setPassword(const std::string& password);
 		void				setDisconnect(bool disconnectCurrentUser);
+
+		bool				isChannel(const std::string& name) const;
+		bool				isClient(const std::string& name) const;
+		
+		void				createChannel(Client* cl, const std::string& name);
+		
+		void				sendTo(Client& cl, const std::string& text);
+		void				broadcast(const Channel& ch, const std::string& msg, int exceptFd);
 };
 
 #endif

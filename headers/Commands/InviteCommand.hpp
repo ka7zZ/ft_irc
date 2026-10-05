@@ -12,8 +12,6 @@ class InviteCommand: public ICommand
 		size_t minParams() const;
 		void   execute(Server& sv, Client& user, const Message& msg) const;
 
-	private:
-		void	splitParams(const std::string& list, std::vector<std::string>& out);
 };
 
 #endif
