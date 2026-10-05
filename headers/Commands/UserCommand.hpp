@@ -1,0 +1,3 @@
+#ifndef USERCOMMAND_HPP
+# define USERCOMMAND_HPP
+#endif

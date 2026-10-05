@@ -1,0 +1,3 @@
+#ifndef NICKCOMMAND_HPP
+# define NICKCOMMAND_HPP
+#endif

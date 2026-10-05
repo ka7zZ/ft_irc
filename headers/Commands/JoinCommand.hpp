@@ -1,0 +1,3 @@
+#ifndef JOINCOMMAND_HPP
+# define JOINCOMMAND_HPP
+#endif

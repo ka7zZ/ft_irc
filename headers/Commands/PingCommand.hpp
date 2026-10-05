@@ -1,0 +1,3 @@
+#ifndef PINGCOMMAND_HPP
+# define PINGCOMMAND_HPP
+#endif

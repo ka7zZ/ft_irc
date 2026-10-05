@@ -1,0 +1,3 @@
+#ifndef MODECOMMAND_HPP
+# define MODECOMMAND_HPP
+#endif

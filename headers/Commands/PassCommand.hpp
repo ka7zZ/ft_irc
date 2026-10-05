@@ -1,0 +1,3 @@
+#ifndef PASSCOMMAND_HPP
+# define PASSCOMMAND_HPP
+#endif

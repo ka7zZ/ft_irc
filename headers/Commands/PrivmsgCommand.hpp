@@ -1,0 +1,3 @@
+#ifndef PRIVMSGCOMMAND_HPP
+# define PRIVMSGCOMMAND_HPP
+#endif
