@@ -31,7 +31,7 @@ void	NickCommand::execute(Server& sv, Client& user, const Message& msg) const
 
 	const std::string&	nick = msg.params[0].value;
 	
-	if (msg.params[0].value.empty())
+	if (nick.empty())
 		throw IRCError(431);
 	if (!isLegit(nick))
 		throw IRCError(432, nick);

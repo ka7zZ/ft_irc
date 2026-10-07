@@ -18,7 +18,6 @@ class Server
 		int			_port;
 		std::string _password;
 		int			_serverFd;
-		bool		_disconnectCurrentUser;
 
 		std::map<int, Client>				_clients;
 		std::map<std::string, Client>		_userPasswords;
@@ -71,11 +70,9 @@ class Server
 
 		Channel*			getChannel(const std::string& channelName);
 		const std::string&	getPassword() const;
-		bool				getDisconnect();
 		Client*				getClientByNickname(const std::string& nickname);
 
 		void				setPassword(const std::string& password);
-		void				setDisconnect(bool disconnectCurrentUser);
 
 		bool				isChannel(const std::string& name) const;
 		bool				isClient(const std::string& name) const;

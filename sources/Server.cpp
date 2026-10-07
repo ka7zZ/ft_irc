@@ -14,8 +14,7 @@ extern volatile sig_atomic_t	g_serverRunning;
 Server::Server(int port, const std::string& password)
 	: _port(port),
 	_password(password),
-	_serverFd(-1),
-	_disconnectCurrentUser(false) {}
+	_serverFd(-1) {}
 
 Server::~Server()
 {
@@ -25,12 +24,6 @@ Server::~Server()
 // PRIVATE COMMANDS
 
 // 					SERVER UTILS
-
-void	Server::disconnectClient(int fd, const std::string& reason) {
-	std::cout << "[fd #" << fd << "] Disconnected: " << reason << std::endl;
-	removeClient(fd);
-	
-}
 
 void    Server::rebuildPollFds()
 {
@@ -131,7 +124,7 @@ bool	Server::extractValidData(Client *target)
 			rawLine.erase(rawLine.size() - 1);
 		// PREVENT BUFFER OVERFLOW: 512 max octet per message permitted by IRC; 2 - '\r' + '\n'
 		if (rawLine.size() + 2 > 512) {
-			disconnectClient(fd, "number of octets above limit");
+			removeClient(fd);
 			return false;
 		} else if (rawLine.empty()) {
 			// ITERATING AGAIN
@@ -140,11 +133,13 @@ bool	Server::extractValidData(Client *target)
 		// DISPATCH
 		
 		// CASE OF NOT PASS
-		if (_disconnectCurrentUser == true) {
-			disconnectClient(fd, "wrong password");
-			_disconnectCurrentUser = false;
+		if (target->getMarkForClose())
+		{
+			if (!target->hasOutput())
+				removeClient(fd);
+			return false;
 		}
-			
+
 		// SAFETY CASE OF COMMAND QUIT
 		if (getClientBySocket(fd) == NULL)
 			return false;
@@ -220,7 +215,8 @@ void	Server::registerClient()
 		return ;
 	}
 	clientPort = ntohs(clientAddress.sin_port);
-	std::cout << "[Attempt to connect] " << inet_ntoa(clientAddress.sin_addr) << ":" << clientPort << std::endl;
+    const std::string   host = inet_ntoa(clientAddress.sin_addr);
+	std::cout << "[Attempt to connect] " << host << ":" << clientPort << std::endl;
 	if (clientFd < 0)
 		return ;
 	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0) {
@@ -228,7 +224,7 @@ void	Server::registerClient()
 		close(clientFd);
 		return ;
 	}
-	_clients.insert(std::make_pair(clientFd, Client(clientFd, inet_ntoa(clientAddress.sin_addr))));
+	_clients.insert(std::make_pair(clientFd, Client(clientFd, host)));
 	std::cout << "[SOCKET #" << clientFd << "] Successfully registered." << std::endl;
 }
 
@@ -296,6 +292,8 @@ void	Server::sendData(int targetFd)
 
 	if (bytes > 0)
 		cl->eraseOutBuffer(bytes);
+	if (cl->getMarkForClose() && !cl->hasOutput())
+		removeClient(targetFd);
 }
 // void	Server::sendMessageAll(int senderFd, const std::string& message);
 // void	Server::sendMessagePrivate(int senderFd, int receiverFd, const std::string& message);
@@ -343,8 +341,6 @@ Channel*    Server::getChannel(const std::string& channelName)
 }
 const std::string&	Server::getPassword() const { return _password; }
 
-bool	Server::getDisconnect() { return _disconnectCurrentUser; }
-
 Client*	Server::getClientByNickname(const std::string& nickname)
 {
 	std::map<int, Client>::iterator	it;
@@ -359,7 +355,6 @@ Client*	Server::getClientByNickname(const std::string& nickname)
 
 void	Server::setPassword(const std::string& password) { _password = password; }
 
-void	Server::setDisconnect(bool disconnectCurrentUser) { _disconnectCurrentUser = disconnectCurrentUser; }
 
 bool	Server::isChannel(const std::string& name) const
 {

@@ -16,7 +16,7 @@ void 	PassCommand::execute(Server& sv, Client& user, const Message& msg) const
     if (msg.params[0].value.empty())
 		throw IRCError(461);
 	if (msg.params[0].value != sv.getPassword()) {
-		sv.setDisconnect(true);
+		user.setMarkForClose(true);
 		throw IRCError(464);
 	}
 	user.setPassState(true);
