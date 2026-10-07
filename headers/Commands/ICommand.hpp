@@ -14,7 +14,7 @@ class ICommand
 
 		virtual bool	needsRegistration() = 0;
 		virtual size_t	minParams() = 0;
-		virtual void	execute(Server&, Client&, Client&, const Message&) const = 0;
+		virtual void	execute(Server&, Client& const Message&) const = 0;
 };
 
 #endif

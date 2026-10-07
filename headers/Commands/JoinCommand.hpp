@@ -5,6 +5,8 @@
 # include <vector>
 # include <string>
 
+class Channel;
+
 class JoinCommand: public ICommand
 {
 	public:

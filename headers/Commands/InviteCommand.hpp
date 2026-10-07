@@ -2,7 +2,6 @@
 # define INVITECOMMAND_HPP
 
 # include "ICommand.hpp"
-# include <vector>
 # include <string>
 
 class InviteCommand: public ICommand

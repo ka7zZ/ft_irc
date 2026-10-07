@@ -1,0 +1,54 @@
+# include "../../headers/Commands/NickCommand.hpp"
+# include "../../headers/Server.hpp"
+# include "../../headers/IRCParser.hpp"
+# include "../../headers/Client.hpp"
+# include "../../headers/Channel.hpp"
+# include "../../headers/IRCError.hpp"
+# include <string>
+
+bool	NickCommand::isLegit(const std::string& nick)
+{
+	const std::string	forbiddenChars = ",.!*@";
+	const std::string	forbiddenStart = "1234567890-#&$:";
+
+	if (forbiddenStart.find(nick[0]) != std::string::npos)
+		return false;
+	for (size_t i = 0; i < nick.size(); i++) {
+		if (forbiddenChars.find(nick[i]) != std::string::npos)
+			return false;
+	}
+	return true;
+}
+
+bool	NickCommand::needsRegistration() const { return false; }
+
+size_t	NickCommand::minParams() const { return 1; }
+
+void	NickCommand::execute(Server& sv, Client& user, const Message& msg) const
+{
+	if (user.getPassState() == false)
+		throw IRCError(451);
+
+	const std::string&	nick = msg.params[0].value;
+	
+	if (msg.params[0].value.empty())
+		throw IRCError(431);
+	if (!isLegit(nick))
+		throw IRCError(432, nick);
+	
+	Client* other = sv.getClientByNickname(nick);
+	if (other != NULL && other->getSocket() != user.getSocket())
+		throw IRCError(433, nick);
+	if (nick == user.getNickname())
+		return ;
+	
+	bool	alreadyRegistered = user.getAuthState();
+	std::string	oldPrefix = user.prefix();
+	
+	user.setNickname(nick);
+	user.setNickState(true);
+
+	if (alreadyRegistered)
+		sv.sendTo(user, ":" + oldPrefix + " NICK: " + nick + "\r\n");
+}
+
