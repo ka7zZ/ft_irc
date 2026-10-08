@@ -16,7 +16,7 @@ void	InviteCommand::execute(Server& sv, Client& user, const Message& msg) const
 	const std::string&	ch = msg.params[1].value;
 
 	Channel*	channel = sv.getChannel(ch);
-	if (!sv.isChannel(channel->getName()))
+	if (channel == NULL)
 		throw IRCError(403);
 	if (!channel->isMember(user.getSocket()))
 		throw IRCError(442, channel->getName());

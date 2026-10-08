@@ -416,9 +416,11 @@ void	Server::broadcast(const Channel& ch, const std::string& msg, int exceptFd)
 {
 	if (!isChannel(ch.getName()))
 		return ;
-	
-	std::map<int, Member>::const_iterator	it = ch.getAll().begin();
-	while (it != ch.getAll().end())
+
+	std::map<int, Member>   members = ch.getAll();
+	std::map<int, Member>::const_iterator	it;
+    
+    for (it = members.begin(); it != members.end(); ++it)
 	{
 		if (exceptFd > 0 && it->first == exceptFd)
 			continue ;
