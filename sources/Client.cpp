@@ -45,7 +45,7 @@ void	Client::setRealname(const std::string& realname) { _realname = realname; }
 
 void	Client::setPassState(bool pass) { _hasPass = pass; }
 
-void	Client::setNickState(bool nick) { _hasNick; }
+void	Client::setNickState(bool nick) { _hasNick = nick; }
 
 void	Client::setAuthState(bool isAuth) { _isAuth = isAuth; }
 

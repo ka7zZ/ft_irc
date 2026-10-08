@@ -4,6 +4,7 @@
 // # include "CommandDispatcher.hpp"
 # include "Client.hpp"
 # include "Channel.hpp"
+# include "Dispatcher.hpp"
 # include <map>				// containers
 # include <vector>			// containers
 # include <string>			// std::string
@@ -23,7 +24,7 @@ class Server
 		std::map<std::string, Client>		_userPasswords;
 		std::vector<struct pollfd>			_pollSockets;
 		std::vector<Channel>                _channels;
-		// Dispatcher						_dispatcher;
+		Dispatcher							_dispatcher;
 
 		// OCF
 		Server(const Server&);

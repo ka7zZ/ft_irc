@@ -1,4 +1,6 @@
 # include "Server.hpp"
+# include "IRCParser.hpp"
+# include "Dispatcher.hpp"
 # include <sys/socket.h>	// sockets
 # include <arpa/inet.h>		// htons
 # include <fcntl.h>			// fcntl
@@ -131,7 +133,15 @@ bool	Server::extractValidData(Client *target)
 			continue ;
 		}
 		// DISPATCH
-		
+		try {
+			IRCParser	parser(rawLine);
+			Message		msg = parser.parseTokens();
+			if (!msg.command.empty())
+				_dispatcher.dispatch(*this, *target, msg);
+		} catch (std::exception& e) {
+			disconnectClient(fd, "internal error");
+			return false;
+		}
 		// CASE OF NOT PASS
 		if (target->getMarkForClose())
 		{
@@ -215,7 +225,7 @@ void	Server::registerClient()
 		return ;
 	}
 	clientPort = ntohs(clientAddress.sin_port);
-    const std::string   host = inet_ntoa(clientAddress.sin_addr);
+	const std::string   host = inet_ntoa(clientAddress.sin_addr);
 	std::cout << "[Attempt to connect] " << host << ":" << clientPort << std::endl;
 	if (clientFd < 0)
 		return ;
@@ -237,6 +247,13 @@ void	Server::removeClient(int clientFd)
 		return ;
 	_clients.erase(it);
 	close(clientFd);
+}
+
+void	Server::disconnectClient(int clientFd, const std::string& reason)
+{
+	std::cout << "[SOCKET #" << clientFd << "] Disconnected: "
+		<< reason << std::endl;
+	removeClient(clientFd);
 }
 
 void	Server::handleClientData(int clientFd)
@@ -339,6 +356,7 @@ Channel*    Server::getChannel(const std::string& channelName)
 	}
 	return NULL;
 }
+
 const std::string&	Server::getPassword() const { return _password; }
 
 Client*	Server::getClientByNickname(const std::string& nickname)
@@ -364,7 +382,7 @@ bool	Server::isChannel(const std::string& name) const
 		if (it->getName() == name)
 			return true;
 	}
-	return;
+	return false;
 }
 
 bool	Server::isClient(const std::string& name) const

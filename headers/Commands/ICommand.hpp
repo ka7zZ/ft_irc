@@ -12,9 +12,9 @@ class ICommand
 	public:
 		virtual ~ICommand() {}
 
-		virtual bool	needsRegistration() = 0;
-		virtual size_t	minParams() = 0;
-		virtual void	execute(Server&, Client& const Message&) const = 0;
+		virtual bool	needsRegistration() const = 0;
+		virtual size_t	minParams() const = 0;
+		virtual void	execute(Server&, Client&, const Message&) const = 0;
 };
 
 #endif

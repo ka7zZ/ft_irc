@@ -1,8 +1,10 @@
 #ifndef DISPATCHER_HPP
 # define DISPATCHER_HPP
 
-#include <map>
-#include <string>
+# include "../headers/Commands/ICommand.hpp"
+# include <map>
+# include <string>
+# include <iostream>
 
 class Server;
 class Client;
@@ -10,20 +12,16 @@ struct Message;
 
 class Dispatcher
 {
-    public:
-        typedef void(*Dispatch)(Server&, Client&, Message&);
+	private:
+		std::map<std::string, ICommand*>	_commands;
+		
+		void	clear();
 
-    private:
-        std::map<std::string, Dispatch>  dispatch;
+	public:
+		Dispatcher();
+		~Dispatcher();
 
-        static void handleInvite(Server& sv, Client& cl, const Message& msg);
-        static void handleJoin(Server& sv, Client& cl, const Message& msg);
-
-    public:
-        Dispatcher();
-        ~Dispatcher();
-
-        void    dispatch(Server& sv, Client& cl, const Message& msg);
+		void    dispatch(Server& sv, Client& cl, const Message& msg);
 };
 
 #endif

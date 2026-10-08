@@ -3,6 +3,7 @@
 
 # include "ICommand.hpp"
 # include <cstddef>
+# include <string>
 
 class Server;
 class Client;
