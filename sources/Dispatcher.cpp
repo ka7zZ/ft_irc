@@ -6,6 +6,7 @@
 # include "../headers/Commands/NickCommand.hpp"
 # include "../headers/Commands/PrivmsgCommand.hpp"
 # include "../headers/Commands/PingCommand.hpp"
+# include "../headers/Commands/KickCommand.hpp"
 # include "../headers/Server.hpp"
 # include "../headers/IRCParser.hpp"
 # include "../headers/Client.hpp"
@@ -21,6 +22,7 @@ Dispatcher::Dispatcher() {
         _commands["PING"] = new PingCommand();
 		_commands["INVITE"] = new InviteCommand();
         _commands["PRIVMSG"] = new PrivmsgCommand();
+        _commands["KICK"] = new KickCommand();
 	} catch (std::exception& e) {
 		clear();
 		std::cout << e.what() << std::endl;

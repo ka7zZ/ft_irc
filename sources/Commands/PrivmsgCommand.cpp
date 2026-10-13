@@ -68,7 +68,7 @@ void 	PrivmsgCommand::execute(Server& sv, Client& user, const Message& msg) cons
 		try {
 			sendOne(sv, user, recipients[i], message);
 		} catch (const IRCError& e) {
-			sv.sendTo(user, e.format(user.getNickname()));
+			sv.sendTo(user, e.format(user.getNickname()) + "\r\n");
 		}
 	}
 }
