@@ -239,12 +239,27 @@ void	Server::registerClient()
 
 void	Server::removeClient(int clientFd)
 {
-	std::map<int, Client>::iterator	it = _clients.find(clientFd);
+	std::map<int, Client>::iterator	itClient = _clients.find(clientFd);
 	
 	// REMOVE USER FROM REGISTRY
-	if (it == _clients.end()) 
+	if (itClient == _clients.end()) 
 		return ;
-	_clients.erase(it);
+	std::vector<Channel>::iterator  itChannel = _channels.begin();
+	while (itChannel != _channels.end())
+	{
+		itChannel->removeInvited(clientFd);
+		if (itChannel->isMember(clientFd))
+		{
+			itChannel->removeMember(clientFd);
+			if(itChannel->getSize() > 0)
+				broadcast(*itChannel, ":" + itClient->second.prefix() + " QUIT :Client disconnected.\r\n", -1);
+		}
+		if (itChannel->getSize() == 0)
+			itChannel = _channels.erase(itChannel);
+		else
+			++itChannel;
+	}
+	_clients.erase(itClient);
 	close(clientFd);
 }
 
@@ -407,10 +422,7 @@ void	Server::sendTo(Client& cl, const std::string& text)
 
 void	Server::broadcast(const Channel& ch, const std::string& msg, int exceptFd)
 {
-	if (!isChannel(ch.getName()))
-		return ;
-
-	std::map<int, Member>   members = ch.getAll();
+	const std::map<int, Member>&			members = ch.getAll();
 	std::map<int, Member>::const_iterator	it;
 
 	for (it = members.begin(); it != members.end(); ++it)

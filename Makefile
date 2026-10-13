@@ -16,7 +16,9 @@ SOURCES		= main.cpp \
 			sources/Commands/NickCommand.cpp \
 			sources/Commands/PassCommand.cpp \
 			sources/Commands/UserCommand.cpp \
-			sources/Commands/PrivmsgCommand.cpp
+			sources/Commands/PrivmsgCommand.cpp \
+			sources/Commands/PingCommand.cpp
+			
 OBJECTS		:= $(SOURCES:.cpp=.o)
 
 all: $(NAME)

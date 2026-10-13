@@ -4,7 +4,6 @@
 # include "../../headers/Client.hpp"
 # include "../../headers/Channel.hpp"
 # include "../../headers/IRCError.hpp"
-# include <string>
 
 bool	NickCommand::isLegit(const std::string& nick)
 {
