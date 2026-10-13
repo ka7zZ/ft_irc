@@ -20,9 +20,9 @@ class Server
 		std::string _password;
 		int			_serverFd;
 
-		std::map<int, Client>				_clients;
-		std::map<std::string, Client>		_userPasswords;
+		std::map<int, Client>				_clients;	
 		std::vector<struct pollfd>			_pollSockets;
+		std::map<std::string, Client>		_userPasswords;
 		std::vector<Channel>                _channels;
 		Dispatcher							_dispatcher;
 
@@ -57,10 +57,6 @@ class Server
 		// COMMUNICATION
 		
 		void	sendData(int targetFd);
-		// void	sendMessageAll(int senderFd, const std::string& message);
-		// void	sendMessagePrivate(int senderFd, int receiverFd, const std::string& message);
-		// void	sendMessageChannel(int senderFd, const std::string& channelName, const std:::string& message);
-		
 
 	public:
 		explicit Server(int port, const std::string& password);
@@ -77,11 +73,14 @@ class Server
 
 		bool				isChannel(const std::string& name) const;
 		bool				isClient(const std::string& name) const;
+		bool				isClientInChannel(Channel* ch, Client* cl);
 		
 		void				createChannel(Client* cl, const std::string& name);
 		
 		void				sendTo(Client& cl, const std::string& text);
 		void				broadcast(const Channel& ch, const std::string& msg, int exceptFd);
+		void				sendPrivateMessage(int senderFd, int receiverFd, const std::string& message);
+		void				sendChannelMessage(int senderFd, const std::string& channelName, const std::string& message);
 };
 
 #endif

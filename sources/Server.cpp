@@ -26,7 +26,6 @@ Server::~Server()
 // PRIVATE COMMANDS
 
 // 					SERVER UTILS
-
 void    Server::rebuildPollFds()
 {
 	_pollSockets.clear();
@@ -298,7 +297,6 @@ Client*	Server::getClientBySocket(int fd)
 	return &it->second;
 }
 
-
 void	Server::sendData(int targetFd)
 {
 	Client*		cl = getClientBySocket(targetFd);
@@ -312,9 +310,6 @@ void	Server::sendData(int targetFd)
 	if (cl->getMarkForClose() && !cl->hasOutput())
 		removeClient(targetFd);
 }
-// void	Server::sendMessageAll(int senderFd, const std::string& message);
-// void	Server::sendMessagePrivate(int senderFd, int receiverFd, const std::string& message);
-// void	Server::sendMessageChannel(int senderFd, const std::string& channelName, const std::string& message);
 
 // PUBLIC COMMANDS
 
@@ -373,7 +368,6 @@ Client*	Server::getClientByNickname(const std::string& nickname)
 
 void	Server::setPassword(const std::string& password) { _password = password; }
 
-
 bool	Server::isChannel(const std::string& name) const
 {
 	std::vector<Channel>::const_iterator  it;
@@ -406,7 +400,6 @@ void	Server::createChannel(Client* cl, const std::string& name)
 	_channels.push_back(ch);
 }
 
-
 void	Server::sendTo(Client& cl, const std::string& text)
 {
 	cl.appendOutbuffer(text);
@@ -419,8 +412,8 @@ void	Server::broadcast(const Channel& ch, const std::string& msg, int exceptFd)
 
 	std::map<int, Member>   members = ch.getAll();
 	std::map<int, Member>::const_iterator	it;
-    
-    for (it = members.begin(); it != members.end(); ++it)
+
+	for (it = members.begin(); it != members.end(); ++it)
 	{
 		if (exceptFd > 0 && it->first == exceptFd)
 			continue ;

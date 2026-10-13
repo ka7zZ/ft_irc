@@ -20,5 +20,5 @@ void 	PassCommand::execute(Server& sv, Client& user, const Message& msg) const
 		throw IRCError(464);
 	}
 	user.setPassState(true);
-	sv.sendTo(user, "Password approved.");
+	sv.sendTo(user, "Password approved\r\n");
 }

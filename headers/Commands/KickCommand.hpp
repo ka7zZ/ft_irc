@@ -1,0 +1,3 @@
+#ifndef KICKCOMMAND_HPP
+# define KICKCOMMAND_HPP
+#endif

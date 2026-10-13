@@ -57,7 +57,6 @@ class Client
 		void	eraseOutBuffer(size_t n);
 		bool	hasOutput() const;
 		
-
 };
 
 #endif
