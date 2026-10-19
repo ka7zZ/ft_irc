@@ -46,7 +46,7 @@ void	JoinCommand::sendReplies(Server& sv, Client& cl, const Channel& ch)
 		sv.sendTo(cl, ":ircserv 332 " + nick + " " + ch.getName() + " :" + ch.getTopic() + "\r\n");
 	
 	std::string names;
-	const std::map<int, Member>& members = ch.getAll();
+	const std::map<int, Member>& members = ch.getAllMembers();
 	for (std::map<int, Member>::const_iterator it = members.begin(); it != members.end(); ++it)
 	{
 		if (!names.empty())
@@ -72,13 +72,17 @@ void	JoinCommand::joinChannel(Server& sv, Client& cl, const std::string& name, c
 	{
 		if (ch->isMember(cl.getSocket()))
 			return ;
-		if (ch->getLimit() != 0 && !freeSpace(ch->getLimit(), ch->getSize()))
+		if (ch->getLimit() != 0 && !freeSpace(ch->getLimit(), ch->getChannelSize()))
 			throw IRCError(471, name);
-		if (ch->isInviteOnly() && !ch->isInvited(cl.getSocket()))
+        bool    isInvited = ch->isInvited(cl.getSocket());
+		if (ch->isInviteOnly() && !isInvited)
 			throw IRCError(473, name);
+        bool    isBanned = ch->isBanned(cl.getNickname());
+        if (isBanned)
+            throw IRCError(474, cl.getNickname());
 		if (!ch->getKey().empty() && ch->getKey() != key)
 			throw IRCError(475, name);
-		ch->addMember(&cl, false);
+		ch->addMember(&cl, false, true);
 		ch->removeInvited(cl.getSocket());
 	}
 	sv.broadcast(*ch, ":" + cl.prefix() + " JOIN " + ch->getName() + "\r\n", -1);

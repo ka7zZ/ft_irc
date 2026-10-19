@@ -233,7 +233,7 @@ void	Server::registerClient()
 		close(clientFd);
 		return ;
 	}
-	_clients.insert(std::make_pair(clientFd, Client(clientFd, host)));
+	_clients[clientFd] = Client(clientFd, host);
 	std::cout << "[SOCKET #" << clientFd << "] Successfully registered." << std::endl;
 }
 
@@ -251,10 +251,10 @@ void	Server::removeClient(int clientFd)
 		if (itChannel->isMember(clientFd))
 		{
 			itChannel->removeMember(clientFd);
-			if(itChannel->getSize() > 0)
+			if(itChannel->getChannelSize() > 0)
 				broadcast(*itChannel, ":" + itClient->second.prefix() + " QUIT :Client disconnected.\r\n", -1);
 		}
-		if (itChannel->getSize() == 0)
+		if (itChannel->getChannelSize() == 0)
 			itChannel = _channels.erase(itChannel);
 		else
 			++itChannel;
@@ -411,7 +411,7 @@ void	Server::createChannel(Client* cl, const std::string& name)
 		return ;
 	Channel ch(name);
 
-	ch.addMember(cl, true);
+	ch.addMember(cl, true, true);
 	_channels.push_back(ch);
 }
 
@@ -422,7 +422,7 @@ void	Server::sendTo(Client& cl, const std::string& text)
 
 void	Server::broadcast(const Channel& ch, const std::string& msg, int exceptFd)
 {
-	const std::map<int, Member>&			members = ch.getAll();
+	const std::map<int, Member>&			members = ch.getAllMembers();
 	std::map<int, Member>::const_iterator	it;
 
 	for (it = members.begin(); it != members.end(); ++it)

@@ -29,11 +29,15 @@ void	PrivmsgCommand::sendOne(Server& sv, Client& user, const std::string& recipi
 	const std::string line = ":" + user.prefix() + " PRIVMSG " + recipient + " :" + message + "\r\n";
 	if (recipient[0] == '#') {
 		Channel*	ch = sv.getChannel(recipient);
-		if (ch == NULL)
+        if (ch == NULL)
 			throw IRCError(403, recipient);
-		if (!ch->isMember(user.getSocket()))
+        bool    member = ch->isMember(user.getSocket());
+        if (ch->isSecret() && !ch->isMember(user.getSocket()))
+            throw IRCError(403, recipient);
+		if (ch->isBanned(user.prefix()) ||
+            (!member && ch->isNoExternalMsg()) ||
+            (ch->isModerated() && !ch->isAdmin(user.getSocket())) && !ch->isVoiced(user.getSocket()))
 			throw IRCError(404, recipient);
-	
 		sv.broadcast(*ch, line, user.getSocket());
 		return ;
 	}

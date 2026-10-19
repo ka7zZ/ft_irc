@@ -77,6 +77,8 @@ std::string IRCError::format(const std::string& arg) const
 		case 473:
 			oss << "ERR_INVITEONLYCHAN: Cannot join channel (+i)";
 			break ;
+		case 474:
+			oss << "ERR_BANNEDFROMCHAN: Cannot join channel (+b)";
 		case 475:
 			oss << "ERR_BADCHANNELKEY: Cannot join channel (+i)";
 			break ;
