@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <ctime>
 
 class Client;
 
@@ -13,18 +14,25 @@ struct  Member{
 	bool	isVoiced;
 };
 
+struct	BanFormat
+{
+	std::string	bannedPrefix;
+	std::string	authorPrefix;
+	time_t		at;
+};
+
 class Channel
 {
 	private:
 		std::string 				_name;
 		std::map<int, Member>		_members;
 		std::vector<int>			_invited;
-		std::vector<std::string>	_banList;			// +b
+		std::vector<BanFormat>		_banList;			// +b
 		std::string					_key;				// +k
 		size_t						_limit;				// +l
 		std::string					_topic;
 		bool 						_isInviteOnly;		// +i
-		bool 						_isTopicRestricted;	// +t
+		bool 						_isTopic;			// +t
 		bool						_isModerated;		// +m
 		bool						_isNoExternalMsg;	// +n
 		bool						_isSecret;			// +s
@@ -39,18 +47,19 @@ class Channel
 		Client*							getMember(int memberFd) const;
 		Client*							getMemberByNickname(const std::string& nickname) const;
 		const std::map<int, Member>&	getAllMembers() const;
-		const std::vector<std::string>&	getBanList() const;		// MODE <channel> +b
-		const std::string&				getKey() const;			// MODE <
+		const std::vector<BanFormat>&	getBanList() const;
+		const std::string&				getKey() const;
 		size_t							getLimit() const;
 		const std::string&				getTopic() const;
 		size_t							getChannelSize() const;
+		const std::string&				getChannelMode() const;
 		bool							isMember(int fd) const;
 		bool							isAdmin(int fd) const;
 		bool 							isVoiced(int fd) const;
 		bool 							isBanned(const std::string& nick) const;
 		bool							isInvited(int fd) const;
 		bool							isInviteOnly() const;
-		bool							isTopicRestricted() const;
+		bool							isTopic() const;
 		bool							isModerated() const;
 		bool							isNoExternalMsg() const;
 		bool							isSecret() const;
@@ -72,9 +81,10 @@ class Channel
 		
 		// CHANNEL UTILS
 		void							addMember(Client* cl, bool isAdmin, bool isVoiced);
-		void							banMember(const std::string& nick);
 		void							removeMember(int fd);
-		void							removeBan(const std::string& prefix);
+		BanFormat*						findBanned(const std::string& bannedPrefix);
+		void							banMember(const std::string& bannedPrefix, const std::string& authorPrefix);
+		void							removeBan(const std::string& bannedPrefix);
 		void							addInvited(int fd);
 		void							removeInvited(int fd);
 };
