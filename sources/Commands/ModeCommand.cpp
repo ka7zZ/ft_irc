@@ -83,51 +83,19 @@ Actions:
 
 */
 
-void	ModeCommand::splitParams(const std::string& list, std::vector<std::string>& out)
-{
-	size_t	start = 0;
-
-	while (start <= list.size())
-	{
-		size_t	comma = list.find_first_of(',', start);
-		if (comma == std::string::npos)
-			comma = list.size();
-		if (comma > start)
-			out.push_back(list.substr(start, comma - start));
-		start = comma + 1;
-	}
-}
-
 void	ModeCommand::throwErrors(Server& sv, Client& user, const Message& msg)
 {
 	const std::string   availableOptions = "biklmnopstvw";
 	const std::string&	target = msg.params[0].value;
 
-	if (target.empty())
-		throw IRCError(461);
-	else if (target[0] == '#')
-	{
-		if (!sv.getChannel(target))
-			throw IRCError(403, target);
-	}	
-	else if (!sv.getClientByNickname(target))
+	if (!sv.getClientByNickname(target))
 		throw IRCError(401, target);
 	else if (sv.getClientByNickname(target)->getNickname() != user.getNickname())
 		throw (IRCError(502, target));
 	if (msg.params.size() == 1)
 		return ;
 	const std::string&	flags = msg.params[1].value;
-	for (size_t i = 0; i < flags.size(); ++i)
-	{
-		if (flags[i] == '+' || flags[i] == '-')
-			continue;
-		if (availableOptions.find(flags[i]) == std::string::npos)
-		{
-			if (sv.isChannel(target))
-				throw IRCError(472, target);
-			throw IRCError(501);
-		}
-	}
+	
 }
 
 void	ModeCommand::sendMessage(Server)
@@ -135,49 +103,107 @@ void	ModeCommand::sendMessage(Server)
 
 }
 
-size_t	ModeCommand::channelAddMode(Channel& ch, char flag, const Message& msg, size_t idxParam)
+const std::string&	ModeCommand::messageBanMode(Server& sv, Client& user, Flag f) const
 {
-	switch (flag) {
-		case 'b':
-			if (idxParam < msg.params.size())
-				ch.banMember(msg.params[idxParam].value);
-			else {
-				const std::vector<BanFormat>&			banList = ch.getBanList();
-				std::vector<BanFormat>::const_iterator	it;
-				for (it = banList.begin(); it != banList.end(); ++it)
-				{
-					sv
-				}
-			}
-		case 'i':
-		case 'k':
-		case 'l':
-		case 'm':
-		case 'n':
-		case 'o':
-		case 'p':
-		case 's':
-		case 't':
-		case 'v':
+	std::string	msg;
+
+	if (f.act == ADD) {
+		if (f.parameterValue == NULL)
+			throw IRCError()
+
+	}
+	if (f.act == REMOVE) {
+
 	}
 }
 
-bool	ModeCommand::channelMode(Server& sv, Client& user, const Message& msg)
+void	ModeCommand::parseFlags(Server& sv, Client& user, Channel* ch, const Message& msg)
+{
+	std::vector<Flag>::iterator	it;
+
+	for (it = _flags.begin(); it != _flags.end(); ++it) {
+		switch (it->flag) {
+			case 'b':
+				if (msg.params.size() == 1)
+					sv.sendTo(user, ch->getChannelMode() + "\r\n");
+				else
+					sv.broadcast(*ch, messageBanMode(sv, user, it) + "\r\n", -1);
+				break ;
+			case 'i':
+				break ;
+			case 'k':
+				break ;
+			case 'l':
+				break ;
+			case 'm':
+				break ;
+			case 'n':
+				break ;
+			case 'o':
+				break ;
+			case 'p':
+				break ;
+			case 's':
+				break ;
+			case 't':
+				break ;
+			case 'v':
+				break ;
+		}
+	}
+}
+
+bool	ModeCommand::isWithin(const std::string& flags, char f)
+{
+	return flags.find_first_of(f) != std::string::npos;
+}
+
+void	ModeCommand::getFlagArray(const Message& msg, std::vector<Flag> flags)
+{
+	const std::string&	inputFlags = msg.params[1].value;
+	size_t	index = 0;
+	size_t	paramPos = 1;
+
+	while (index < inputFlags.length())																		//	GOING THRU THE PARSED FLAGS
+	{
+		Action	action;																					//	DEFINE THE ACTION OF THE FLAG
+		action = flags[index] == '+' ? ADD : REMOVE;
+		index++;																						// 	MOVE TO THE NEXT CHAR
+		while (index < inputFlags.length() && isWithin("biklmnrstv", inputFlags[index])) {						//	AGGREGATE FLAGS WHILE IS WITHING PERMITTED FLAGS
+			Flag	f;
+			f.act = action;
+			f.flag = inputFlags[index];
+			f.isParameterized = false;
+			f.parameterValue = NULL;
+			if (isWithin("bki", inputFlags[index]) &&														//	CHECK IF IS WITHIN THE PARAMETERIZED FLAGS
+				(f.act == ADD ||																		//	AND IS ONE THAT CHANGES CHANNEL SETTINGS
+					(f.act == REMOVE && inputFlags[index] == 'b'))) {										//	OR IS THE REMOVE BAN THAT NEEDS PARAMETER OF WHOM
+				f.parameterValue = ++paramPos < msg.params.size() ? &msg.params[paramPos].value : NULL;											//	ASSIGNING THE POSITION OF THE PARAMETER IN THE ASCEND ORDER
+				f.isParameterized = true;
+			}
+			flags.push_back(f);
+			index++;
+		}
+	}
+}
+
+void	ModeCommand::channelMode(Server& sv, Client& user, const Message& msg, std::vector<Flag> flags)
 {
 	const std::string&	target = msg.params[0].value;
-	if (target[0] != '#')
-		return false;
+	// CHANNEL EXISTS
 	Channel* channel = sv.getChannel(msg.params[0].value);
+	if (!channel)
+		throw IRCError(403, target);
+	// MODE #channel
 	if (msg.params.size() == 1) {
 		sv.sendTo(user, channel->getChannelMode());
 		return ;
 	}
-	const std::string	permittedFlags = "biklmnrstv";
-	const std::string&	flags = msg.params[1].value;
-	const std::vector<ModeOption>	channelFlags;
-
-	
-	return true;
+	const std::string&	inputFlags = msg.params[1].value;
+	if (flags.size() < 2 || (inputFlags[0] != '+' && inputFlags[0] != '-'))
+		throw IRCError(472, user.getNickname());
+	getFlagArray(msg, flags);
+	parseFlags(sv, user, channel, msg);
 }
 
 void	ModeCommand::userMode(Server& sv, Client& user, const Message& msg)
@@ -196,11 +222,12 @@ size_t	ModeCommand::minParams() const { return 1; }
 
 void	ModeCommand::execute(Server& sv, Client& user, const Message& msg) const
 {
-	if (msg.params.empty())
-		throw IRCError(461);
+	std::vector<Flag>	flags;
 	try {
-		throwErrors(sv, user, msg);
-		
+		if (msg.params.empty() || msg.params[0].value.empty())
+			throw IRCError(461);
+		if (msg.params[0].value[0] == '#')
+			channelMode(sv, user, msg, flags);
 	} catch (IRCError& e) {
 		sv.sendTo(user, e.format(user.getNickname()));
 	}

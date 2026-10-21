@@ -29,7 +29,7 @@ Client*	Channel::getMemberByNickname(const std::string& nickname) const
 {
 	std::map<int, Member>::const_iterator	it;
 
-	for (it = _members.begin(); it != _members.end(); it++) {
+	for (it = _members.begin(); it != _members.end(); ++it) {
 		if (it->second.cl->getNickname() == nickname)
 			return it->second.cl;
 	}
