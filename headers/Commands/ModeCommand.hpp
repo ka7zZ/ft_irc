@@ -24,15 +24,13 @@ struct	Flag {
 class ModeCommand: public ICommand
 {
 	private:
+		static void	sendMessage(Server& sv, Client& user, Channel& ch, const Flag& f);
 		static bool	isWithin(const std::string& flags, char	f);
-		static void	getFlagArray(const Message& msg, std::vector<Flag> flags);
-		static void	parseFlags(Server& sv, Client& user, Channel* ch, const Message& msg);
-		static void	throwErrors(Server& sv, Client& user, const Message& msg);
+		static void	getFlagArray(const Message& msg, std::vector<Flag> flags, const std::string& permittedFlags);
+		static void	applyFlag(Server& sv, Client& user, Channel& ch, const Flag&f);
 		static void	channelMode(Server& sv, Client& user, const Message& msg, std::vector<Flag> flags);
 		static void	userMode(Server& sv, Client& user, const Message& msg);
 		static void	memberStatus(Server& sv, Client& user, const Message& msg);
-
-		const std::string&	messageBanMode(Server& sv, Client& user, const Message& msg, Flag f) const;
 
 	public:
 		bool   needsRegistration() const;

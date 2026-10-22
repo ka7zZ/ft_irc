@@ -6,12 +6,7 @@
 
 Channel::Channel(const std::string& name)
 	: _name(name),
-	_isInviteOnly(false),
-	_isTopic(false),
-	_isModerated(false),
-	_isNoExternalMsg(false),
-	_isSecret(false),
-	_isPrivate(false) {}
+	_limit(0) {}
 
 // GETTERS
 const std::string&	Channel::getName() const { return _name; }
@@ -48,37 +43,7 @@ const std::string&	Channel::getTopic() const { return _topic; }
 
 size_t	Channel::getChannelSize() const { return _members.size(); }
 
-const std::string&	Channel::getChannelMode() const
-{
-	std::ostringstream	oss;
-	bool				isLimit = false;
-	bool				isKey = false;
-	if (isInviteOnly())
-		oss << "i";
-	if (!_key.empty()) {
-		isKey = true;
-		oss << "k";
-	}
-	if (_limit > 0) {
-		isLimit = true;
-		oss << "l";
-	}
-	if (isModerated())
-		oss << "m";
-	if (isNoExternalMsg())
-		oss << "n";
-	if (isPrivate())
-		oss << "p";
-	if (isSecret())
-		oss << "s";
-	if (isTopic())
-		oss << "t";
-	if (isKey)
-		oss << " " << _key;
-	if (isLimit)
-		oss << " " << _limit;
-	return oss.str();
-}
+const std::string&	Channel::getModes() const { return _modes; }
 
 bool	Channel::isMember(int fd) const
 {
@@ -101,19 +66,17 @@ bool	Channel::isVoiced(int fd) const
 	return it != _members.end() && it->second.isVoiced;
 }
 
-bool	Channel::isBanned(const std::string& nick) const
+bool	Channel::isBanned(const std::string& prefix) const
 {
-	for (size_t i = 0; i < _banList.size(); ++i)
+	std::vector<BanFormat>::const_iterator it;
+
+	for (it = _banList.begin(); it < _banList.end(); ++it)
 	{
-		if (_banList[i] == nick)
+		if (it->bannedPrefix == prefix)
 			return true;
 	}
 	return false;
 }
-
-bool	Channel::isInviteOnly() const { return _isInviteOnly; }
-
-bool	Channel::isTopic() const { return _isTopic; }
 
 bool	Channel::isInvited(int fd) const
 {
@@ -126,27 +89,23 @@ bool	Channel::isInvited(int fd) const
 	return false;
 }
 
-bool	Channel::isModerated() const { return _isModerated; }
-
-bool	Channel::isNoExternalMsg() const { return _isNoExternalMsg; }
-
-bool	Channel::isSecret() const { return _isSecret; }
-
-bool	Channel::isPrivate() const { return _isPrivate; }
-
 // SETTERS
-void	Channel::setAdmin(int fd)
+bool	Channel::setAdmin(int fd, bool oped)
 {
 	std::map<int, Member>::iterator	it = _members.find(fd);
-	if (it != _members.end())
-		it->second.isAdmin = true;
+	if (it == _members.end() || it->second.isAdmin)
+		return false;
+	it->second.isAdmin = oped;
+	return true;
 }
 
-void	Channel::setVoiced(int fd, bool isVoiced)
+bool	Channel::setVoiced(int fd, bool voiced)
 {
 	std::map<int, Member>::iterator	it = _members.find(fd);
-	if (it != _members.end())
-		it->second.isVoiced = true;
+	if (it == _members.end() || it->second.isVoiced)
+		return false;
+	it->second.isAdmin = voiced;
+	return true;
 }
 
 void	Channel::setKey(const std::string& key) { _key = key; }
@@ -155,17 +114,21 @@ void	Channel::setLimit(size_t limit) { _limit = limit; }
 
 void	Channel::setTopic(const std::string& topic) { _topic = topic; }
 
-void	Channel::setInviteOnly(bool inviteOnly) { _isInviteOnly = inviteOnly; }
+bool	Channel::setModes(char ch, bool add)
+{
+	size_t  pos = _modes.find_first_of(ch);
 
-void	Channel::setTopicRestricted(bool topicRestricted) { _isTopic = topicRestricted; }
-
-void	Channel::setModerated(bool isModerated) { _isModerated = isModerated; }
-
-void	Channel::setNoExternalMsg(bool isNoExternalMsg) { _isNoExternalMsg = isNoExternalMsg; }
-
-void	Channel::setSecret(bool isSecret) { _isSecret = isSecret; }
-
-void	Channel::setPrivate(bool isPrivate) { _isPrivate = isPrivate; }
+	if (add) {
+		if (pos != std::string::npos)
+			return false;
+		_modes.append(std::string(1, ch));
+		return true;
+	}
+	if (pos == std::string::npos)
+		return false;
+	_modes.erase(pos, 1);
+	return true;
+}
 
 // CHANNEL UTILS
 void	Channel::addMember(Client* cl, bool isAdmin, bool isVoiced)
@@ -180,29 +143,27 @@ void	Channel::addMember(Client* cl, bool isAdmin, bool isVoiced)
 
 }
 
-BanFormat*	Channel::findBanned(const std::string& bannedPrefix)
+std::vector<BanFormat>::iterator	Channel::findBannedIterator(const std::string& bannedPrefix)
 {
-	std::vector<BanFormat>::iterator it;
-
-	for (it = _banList.begin(); it != _banList.end(); ++it) {
-		
-		if (it->bannedPrefix == bannedPrefix)
-			return &(*it);
-	}
-	return NULL;
+	std::vector<BanFormat>::iterator it = _banList.begin();
+    
+	while (it != _banList.end() && it->bannedPrefix != bannedPrefix)
+        ++it;
+    return it;
 }
 
-void	Channel::banMember(const std::string& bannedPrefix, const std::string& authorPrefix)
+bool	Channel::banMember(const std::string& bannedPrefix, const std::string& authorPrefix)
 {
 	time_t	now;
 
-	if (findBanned(bannedPrefix))
-		return ;
+	if (findBannedIterator(bannedPrefix) != _banList.end())
+		return false;
 	BanFormat	newBanned;
 	newBanned.bannedPrefix = bannedPrefix;
 	newBanned.authorPrefix = authorPrefix;
 	newBanned.at = time(&now);
 	_banList.push_back(newBanned);
+	return true;
 }
 
 void	Channel::removeMember(int fd)
@@ -210,17 +171,27 @@ void	Channel::removeMember(int fd)
 	_members.erase(fd);
 }
 
-void	Channel::removeBan(const std::string& bannedPrefix)
+bool	Channel::removeBan(const std::string& bannedPrefix)
 {
-	std::vector<BanFormat>::iterator it;
+	std::vector<BanFormat>::iterator it = findBannedIterator(bannedPrefix);
 
-	for (it = _banList.begin(); it != _banList.end(); ++it) {
-		
-		if (it->bannedPrefix == bannedPrefix) {
-			_banList.erase(it);
-			return ;
-		}
-	}
+	if (it == _banList.end())
+		return false;
+	_banList.erase(it);
+	return true;
+}
+
+std::string	Channel::formattedBan(BanFormat bf) const
+{
+	std::ostringstream	oss;
+
+	oss << bf.bannedPrefix;
+	oss << " ";
+	oss << bf.authorPrefix;
+	oss << " ";
+	oss << bf.at;
+	
+	return oss.str();
 }
 
 void	Channel::addInvited(int fd)
@@ -237,3 +208,5 @@ void	Channel::removeInvited(int fd)
 	if (it != _invited.end())
 		_invited.erase(it);
 }
+
+bool	Channel::hasMode(char c) { return _modes.find_first_of(c) != std::string::npos; }
