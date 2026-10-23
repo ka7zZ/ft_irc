@@ -4,6 +4,33 @@
 # include "../../headers/Client.hpp"
 # include "../../headers/Channel.hpp"
 # include "../../headers/IRCError.hpp"
+
+/*
+	i 	- :remove invite only mode for channel
+		+ :add invite only for channel
+	b	+ nickname: add ban but not remove the user
+		+ :show ban list
+		- nickname: remove ban for nickname
+	k	+ keyValue: add key to channel
+		- : remove channel's key
+	l	+ limitNumber: limits the possible users from channel
+		- : remove the limit
+	m	+ : channel became moderated - only op and voiced can speak
+		- : remove moderated - everyone can speak
+	n	+ : channel became nooutsidemessages mode
+		- : remove nooutsidemessages mode
+	o	+ nickname: nickname become operator
+		- nickanem: nickname become normal user
+	p	+ : channel become private
+		- : channel become public
+	s	+ : channel become secret - not visible in channels list
+		- : channel unsecret - visible in channels list
+	t	+
+	v	+ nickname: nickname become voiced - privileged to speak in moderated channel
+		- nickname: nickname become normal user;
+	w
+*/
+
 /*
 Syntax: MODE <target> [flags] [params...]
 Actions:
@@ -83,20 +110,6 @@ Actions:
 
 */
 
-void	ModeCommand::throwErrors(Server& sv, Client& user, const Message& msg)
-{
-	const std::string   availableOptions = "biklmnopstvw";
-	const std::string&	target = msg.params[0].value;
-
-	if (!sv.getClientByNickname(target))
-		throw IRCError(401, target);
-	else if (sv.getClientByNickname(target)->getNickname() != user.getNickname())
-		throw (IRCError(502, target));
-	if (msg.params.size() == 1)
-		return ;
-	const std::string&	flags = msg.params[1].value;
-	
-}
 
 void	ModeCommand::sendMessage(Server& sv, Client& user, Channel& ch, const Flag& f)
 {
@@ -159,67 +172,6 @@ void	ModeCommand::applyFlag(Server& sv, Client& user, Channel& ch, const Flag& f
 	}
 }
 
-void	ModeCommand::parseFlags(Server& sv, Client& user, Channel* ch, const Message& msg)
-{
-	/*
-		i 	- :remove invite only mode for channel
-			+ :add invite only for channel
-		b	+ nickname: add ban but not remove the user
-			+ :show ban list
-			- nickname: remove ban for nickname
-		k	+ keyValue: add key to channel
-			- : remove channel's key
-		l	+ limitNumber: limits the possible users from channel
-			- : remove the limit
-		m	+ : channel became moderated - only op and voiced can speak
-			- : remove moderated - everyone can speak
-		n	+ : channel became nooutsidemessages mode
-			- : remove nooutsidemessages mode
-		o	+ nickname: nickname become operator
-			- nickanem: nickname become normal user
-		p	+ : channel become private
-			- : channel become public
-		s	+ : channel become secret - not visible in channels list
-			- : channel unsecret - visible in channels list
-		t	+
-		v	+ nickname: nickname become voiced - privileged to speak in moderated channel
-			- nickname: nickname become normal user;
-		w	
-	*/
-	std::vector<Flag>::iterator	it;
-
-	for (it = _flags.begin(); it != _flags.end(); ++it) {
-		switch (it->flag) {
-			case 'b':
-				if (msg.params.size() == 1)
-					sv.sendTo(user, ch->getModes() + "\r\n");
-				else
-					sv.broadcast(*ch, messageBanMode(sv, user, it) + "\r\n", -1);
-				break ;
-			case 'i':
-				break ;
-			case 'k':
-				break ;
-			case 'l':
-				break ;
-			case 'm':
-				break ;
-			case 'n':
-				break ;
-			case 'o':
-				break ;
-			case 'p':
-				break ;
-			case 's':
-				break ;
-			case 't':
-				break ;
-			case 'v':
-				break ;
-		}
-	}
-}
-
 bool	ModeCommand::isWithin(const std::string& flags, char f)
 {
 	return flags.find_first_of(f) != std::string::npos;
@@ -271,7 +223,13 @@ void	ModeCommand::channelMode(Server& sv, Client& user, const Message& msg, std:
 	if (flags.size() < 2 || (inputFlags[0] != '+' && inputFlags[0] != '-'))
 		throw IRCError(472, user.getNickname());
 	getFlagArray(msg, flags, channelFlags);
-	parseFlags(sv, user, channel, msg);
+	try {
+		for (size_t i = 0; i < flags.size(); ++i) {
+			applyFlag(sv, user, *channel, flags[i]);
+		}
+	} catch (IRCError &e) {
+		sv.sendTo(user, e.format(user.getNickname()));
+	}
 }
 
 void	ModeCommand::userMode(Server& sv, Client& user, const Message& msg)
