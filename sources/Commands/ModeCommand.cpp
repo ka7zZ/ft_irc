@@ -111,7 +111,7 @@ void	ModeCommand::sendMessage(Server& sv, Client& user, Channel& ch, const Flag&
 	sv.broadcast(ch, message + "\r\n", -1);
 }
 
-void	ModeCommand::banMode(Server& sv, Client& user, Channel& ch, Flag f)
+void	ModeCommand::banMode(Server& sv, Client& user, Channel& ch, const Flag& f)
 {
 	if (f.act == ADD && !f.isParameterized) {
 		const std::vector<BanFormat>&	bans = ch.getBanList();
@@ -122,14 +122,19 @@ void	ModeCommand::banMode(Server& sv, Client& user, Channel& ch, Flag f)
 		sv.sendTo(user, ":ircserv 368" + user.getNickname() + " " + ch.getName() + " :End of channel ban list\r\n");
 		return ;
 	}
+	if (f.parameterValue == NULL)
+		throw IRCError(461, "MODE");
 	if (!ch.isAdmin(user.getSocket()))
-		throw IRCError(482, user.getNickname());
-	if (f.act == ADD) {
-		
-	}
-	if (f.act == REMOVE) {
-
-	}
+		throw IRCError(482, ch.getName());
+	Client *who = sv.getClientByPrefix(*f.parameterValue);
+	if (!who)
+		return ;
+	char	banType = f.act == ADD ? '+' : '-';
+	if (banType == '-')
+		ch.removeBan(*f.parameterValue);
+	else if (!ch.banMember(*f.parameterValue, user.prefix()))
+		return ;
+	sv.broadcast(ch, ":" + user.prefix() + " " + "MODE " + ch.getName() + " " + banType + f.flag + " " + *f.parameterValue + "\r\n", -1);
 }
 
 void	ModeCommand::applyFlag(Server& sv, Client& user, Channel& ch, const Flag& f) {

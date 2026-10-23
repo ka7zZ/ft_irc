@@ -32,6 +32,8 @@ class ModeCommand: public ICommand
 		static void	userMode(Server& sv, Client& user, const Message& msg);
 		static void	memberStatus(Server& sv, Client& user, const Message& msg);
 
+		static void	banMode(Server& sv, Client& user, Channel& ch, const Flag& f);
+
 	public:
 		bool   needsRegistration() const;
 		size_t minParams() const;

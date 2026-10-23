@@ -381,6 +381,17 @@ Client*	Server::getClientByNickname(const std::string& nickname)
 	return NULL;
 }
 
+Client* Server::getClientByPrefix(const std::string& prefix) {
+    std::map<int, Client>::iterator	it;
+
+	for (it = _clients.begin(); it != _clients.end(); it++) {
+		if (it->second.prefix() == prefix) {
+			return &it->second;
+		}
+	}
+	return NULL;
+}
+
 void	Server::setPassword(const std::string& password) { _password = password; }
 
 bool	Server::isChannel(const std::string& name) const
@@ -414,7 +425,7 @@ void	Server::createChannel(Client* cl, const std::string& name)
 	ch.addMember(cl, true, true);
 	_channels.push_back(ch);
 }
-
+// SEND MESSAGES
 void	Server::sendTo(Client& cl, const std::string& text)
 {
 	cl.appendOutbuffer(text);

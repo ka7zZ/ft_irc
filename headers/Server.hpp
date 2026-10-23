@@ -68,7 +68,7 @@ class Server
 		Channel*			getChannel(const std::string& channelName);
 		const std::string&	getPassword() const;
 		Client*				getClientByNickname(const std::string& nickname);
-
+		Client* 			getClientByPrefix(const std::string& prefix);
 		void				setPassword(const std::string& password);
 
 		bool				isChannel(const std::string& name) const;
