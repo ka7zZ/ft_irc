@@ -124,15 +124,37 @@ void	ModeCommand::sendMessage(Server& sv, Client& user, Channel& ch, const Flag&
 	sv.broadcast(ch, message + "\r\n", -1);
 }
 
+void	ModeCommand::userVisibleMode(Server& sv, Client& user, Channel& ch, const Flag& f)
+{
+	if (f.act == ADD) {
+		if (user.isVisible())
+			return;
+		user.setVisible(true);
+		sv.sendTo(user, user.prefix() + " MODE +i\r\n");
+		return ;
+	}
+	if (!user.isVisible())
+		return ;
+	user.setVisible(false);
+	sv.sendTo(user, user.prefix() + " MODE -i\r\n");
+}
+
+void	ModeCommand::userBanMode(Server& sv, Client& user, Channel& ch)
+{
+	const std::vector<BanFormat>&	bans = ch.getBanList();
+	std::vector<BanFormat>::const_iterator it;
+
+	for (it = bans.begin(); it != bans.end(); ++it) {
+		sv.sendTo(user, ":ircserv 367" + user.getNickname() + " " + ch.getName() + " " + ch.formattedBan(*it) + "\r\n");
+	}
+
+	sv.sendTo(user, ":ircserv 368" + user.getNickname() + " " + ch.getName() + " :End of channel ban list\r\n");
+}
+
 void	ModeCommand::banMode(Server& sv, Client& user, Channel& ch, const Flag& f)
 {
 	if (f.act == ADD && !f.isParameterized) {
-		const std::vector<BanFormat>&	bans = ch.getBanList();
-		std::vector<BanFormat>::const_iterator it;
-		for (it = bans.begin(); it != bans.end(); ++it) {
-			sv.sendTo(user, ":ircserv 367" + user.getNickname() + " " + ch.getName() + " " + ch.formattedBan(*it) + "\r\n");
-		}
-		sv.sendTo(user, ":ircserv 368" + user.getNickname() + " " + ch.getName() + " :End of channel ban list\r\n");
+		userBanMode(sv, user, ch);
 		return ;
 	}
 	if (f.parameterValue == NULL)
@@ -148,6 +170,18 @@ void	ModeCommand::banMode(Server& sv, Client& user, Channel& ch, const Flag& f)
 	else if (!ch.banMember(*f.parameterValue, user.prefix()))
 		return ;
 	sv.broadcast(ch, ":" + user.prefix() + " " + "MODE " + ch.getName() + " " + banType + f.flag + " " + *f.parameterValue + "\r\n", -1);
+}
+
+void	ModeCommand::keyMode(Server& sv, Client& user, Channel& ch, const Flag& f)
+{
+	if (f.act == ADD) {
+		if (!f.isParameterized || f.parameterValue->empty())
+			//error
+		ch.setKey(*f.parameterValue);
+		sv.broadcast(ch, ":ircserv " + user.prefix() + " MODE +k " + *f.parameterValue + "\r\n", -1);
+	}
+	ch.setKey("");
+	sv.broadcast(ch, ":ircserv " + user.prefix() + " MODE -k\r\n", -1);
 }
 
 void	ModeCommand::applyFlag(Server& sv, Client& user, Channel& ch, const Flag& f) {
@@ -214,13 +248,15 @@ void	ModeCommand::channelMode(Server& sv, Client& user, const Message& msg, std:
 	Channel* channel = sv.getChannel(msg.params[0].value);
 	if (!channel)
 		throw IRCError(403, target);
+	// USER IS ADMIN
+	if (!channel->isAdmin(user.getSocket()))
+		throw IRCError(482, user.getNickname());
 	// MODE #channel
 	if (msg.params.size() == 1) {
-		sv.sendTo(user, channel->getModes());
+		sv.sendTo(user, channel->getModes() + "\r\n");
 		return ;
 	}
-	const std::string&	inputFlags = msg.params[1].value;
-	if (flags.size() < 2 || (inputFlags[0] != '+' && inputFlags[0] != '-'))
+	if (msg.params[1].value[0] != '+' && msg.params[1].value[0] != '-')
 		throw IRCError(472, user.getNickname());
 	getFlagArray(msg, flags, channelFlags);
 	try {

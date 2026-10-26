@@ -17,8 +17,9 @@ class Client
 		bool        _hasPass;
 		bool		_hasNick;
 		bool		_isAuth;
-		bool        _closeAfterFlush;
+		bool		_closeAfterFlush;
 		bool		_markForClose;
+		bool		_isVisible;
 
 	public:
 		// CONSTRUCTORS
@@ -36,6 +37,7 @@ class Client
 		bool	getNickState() const;
 		bool	getAuthState() const;
 		bool	getMarkForClose() const;
+		bool	isVisible() const;
 
 		// SETTERS
 		void	setNickname(const std::string& nickname);
@@ -45,7 +47,7 @@ class Client
 		void	setNickState(bool nick);
 		void	setAuthState(bool isAuth);
 		void	setMarkForClose(bool mark);
-
+		void	setVisible(bool visibility);
 		// GETTING THE PREFIX WITH THE RIGHT FORMAT
 		std::string prefix() const;
 

@@ -15,7 +15,8 @@ Client::Client(int socketFd, const std::string& hostname)
     _hasNick(false),
     _isAuth(false),
     _closeAfterFlush(false),
-    _markForClose(false) {}
+    _markForClose(false),
+    _isVisible(true) {}
 
 int	Client::getSocket() const { return _socketFd; }
 
@@ -37,6 +38,8 @@ bool	Client::getAuthState() const { return _isAuth; }
 
 bool	Client::getMarkForClose() const { return _markForClose; }
 
+bool	Client::isVisible() const { return _isVisible; }
+
 void	Client::setNickname(const std::string& nickname) { _nickname = nickname; }
 
 void	Client::setUsername(const std::string& username) { _username = username; }
@@ -50,6 +53,8 @@ void	Client::setNickState(bool nick) { _hasNick = nick; }
 void	Client::setAuthState(bool isAuth) { _isAuth = isAuth; }
 
 void	Client::setMarkForClose(bool mark) { _markForClose = mark; }
+
+void    Client::setVisible(bool visibility) { _isVisible = visibility; }
 
 std::string Client::prefix() const { return _nickname + "!" + _username + "@" + _hostname; }
 

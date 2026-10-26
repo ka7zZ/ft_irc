@@ -1,0 +1,5 @@
+MODE COMMAND execute needs Server, User, Channel, Flags + values?
+
+two type of available flags:
+    1. channelMode
+    2. userMode
