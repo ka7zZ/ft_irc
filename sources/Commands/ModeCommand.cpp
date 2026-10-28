@@ -164,7 +164,7 @@ void	ModeCommand::banMode(Server& sv, Client& user, Channel& ch, const Flag& f)
 	Client *who = sv.getClientByPrefix(*f.parameterValue);
 	if (!who)
 		return ;
-	char	banType = f.act == ADD ? '+' : '-';
+	char	banType = (f.act == ADD) ? '+' : '-';
 	if (banType == '-')
 		ch.removeBan(*f.parameterValue);
 	else if (!ch.banMember(*f.parameterValue, user.prefix()))
@@ -176,9 +176,10 @@ void	ModeCommand::keyMode(Server& sv, Client& user, Channel& ch, const Flag& f)
 {
 	if (f.act == ADD) {
 		if (!f.isParameterized || f.parameterValue->empty())
-			//error
+			throw IRCError(461, user.getNickname());
 		ch.setKey(*f.parameterValue);
 		sv.broadcast(ch, ":ircserv " + user.prefix() + " MODE +k " + *f.parameterValue + "\r\n", -1);
+		return ;
 	}
 	ch.setKey("");
 	sv.broadcast(ch, ":ircserv " + user.prefix() + " MODE -k\r\n", -1);
@@ -188,7 +189,7 @@ void	ModeCommand::applyFlag(Server& sv, Client& user, Channel& ch, const Flag& f
 
 	switch (f.flag) {
 		case 'i' : case 't': case 'm': case 'n': case 'p': case 's':		// CASE FALLTHROUGH BECAUSE THE FLAGS HAVE THE SAME BEHAVIOR
-			if(ch.setModes(f.flag, f.act))
+			if(ch.setModes(f.flag, f.act == ADD))
 				sendMessage(sv, user, ch, f);
 			break ;
 		case 'b':
@@ -211,6 +212,17 @@ bool	ModeCommand::isWithin(const std::string& flags, char f)
 	return flags.find_first_of(f) != std::string::npos;
 }
 
+bool	ModeCommand::takesParam(char flag, Action act)
+{
+	switch (flag) {
+		case 'b' : case 'k': case 'o': case 'v' :
+			return true;
+		case 'l':
+			return act == ADD;
+	}
+	return false;
+}
+
 void	ModeCommand::getFlagArray(const Message& msg, std::vector<Flag> flags, const std::string& permittedFlags)
 {
 	const std::string&	inputFlags = msg.params[1].value;
@@ -220,7 +232,7 @@ void	ModeCommand::getFlagArray(const Message& msg, std::vector<Flag> flags, cons
 	while (index < inputFlags.length())																		//	GOING THRU THE PARSED FLAGS
 	{
 		Action	action;																					//	DEFINE THE ACTION OF THE FLAG
-		action = flags[index].flag == '+' ? ADD : REMOVE;
+		action = (inputFlags[index] == '+') ? ADD : REMOVE;
 		index++;																						// 	MOVE TO THE NEXT CHAR
 		while (index < inputFlags.length() && isWithin(permittedFlags, inputFlags[index])) {						//	AGGREGATE FLAGS WHILE IS WITHING PERMITTED FLAGS
 			Flag	f;
@@ -228,7 +240,7 @@ void	ModeCommand::getFlagArray(const Message& msg, std::vector<Flag> flags, cons
 			f.flag = inputFlags[index];
 			f.isParameterized = false;
 			f.parameterValue = NULL;
-			if (isWithin("bki", inputFlags[index]) &&														//	CHECK IF IS WITHIN THE PARAMETERIZED FLAGS
+			if (isWithin("bkl", inputFlags[index]) &&														//	CHECK IF IS WITHIN THE PARAMETERIZED FLAGS
 				(f.act == ADD ||																		//	AND IS ONE THAT CHANGES CHANNEL SETTINGS
 					(f.act == REMOVE && inputFlags[index] == 'b'))) {										//	OR IS THE REMOVE BAN THAT NEEDS PARAMETER OF WHOM
 				f.parameterValue = ++paramPos < msg.params.size() ? &msg.params[paramPos].value : NULL;											//	ASSIGNING THE POSITION OF THE PARAMETER IN THE ASCEND ORDER
@@ -248,12 +260,16 @@ void	ModeCommand::channelMode(Server& sv, Client& user, const Message& msg, std:
 	Channel* channel = sv.getChannel(msg.params[0].value);
 	if (!channel)
 		throw IRCError(403, target);
+	// USER IS MEMBER
+	if (!channel->isMember(user.getSocket()))
+		throw IRCError(442, channel->getName());
 	// USER IS ADMIN
 	if (!channel->isAdmin(user.getSocket()))
-		throw IRCError(482, user.getNickname());
+		throw IRCError(482, channel->getName());
 	// MODE #channel
 	if (msg.params.size() == 1) {
-		sv.sendTo(user, channel->getModes() + "\r\n");
+		const std::string   chMsg = channel->getName() + " " + channel->getModes() + " " + channel->getKey() + " " + std::to_string(channel->getLimit());
+		sv.sendTo(user, ":ircserv 324" + user.getNickname() + " " + chMsg + "\r\n");
 		return ;
 	}
 	if (msg.params[1].value[0] != '+' && msg.params[1].value[0] != '-')
@@ -278,7 +294,7 @@ void	ModeCommand::memberStatus(Server& sv, Client& user, const Message& msg)
 
 }
 
-bool	ModeCommand::needsRegistration() const { return false; }
+bool	ModeCommand::needsRegistration() const { return true; }
 
 size_t	ModeCommand::minParams() const { return 1; }
 
