@@ -19,7 +19,9 @@ SOURCES		= main.cpp \
 			sources/Commands/PrivmsgCommand.cpp \
 			sources/Commands/PingCommand.cpp \
 			sources/Commands/KickCommand.cpp \
-			sources/Commands/ModeCommand.cpp
+			sources/Commands/ModeCommand.cpp \
+			sources/Commands/TopicCommand.cpp \
+			sources/Commands/ListCommand.cpp
 			
 			
 OBJECTS		:= $(SOURCES:.cpp=.o)

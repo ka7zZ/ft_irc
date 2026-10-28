@@ -79,6 +79,7 @@ std::string IRCError::format(const std::string& arg) const
 			break ;
 		case 474:
 			oss << "ERR_BANNEDFROMCHAN: Cannot join channel (+b)";
+			break ;
 		case 475:
 			oss << "ERR_BADCHANNELKEY: Cannot join channel (+k)";
 			break ;
@@ -90,10 +91,13 @@ std::string IRCError::format(const std::string& arg) const
 			break ;
         case 501:
             oss << "ERR_UMODEUNKNOWNFLAG: Unknown MODE flag";
+			break ;
         case 502:
             oss << "ERR_USERSDONTMATCH: Cannot change mode for other users";
+			break ;
         case 525:
             oss << "ERR_INVALIDKEY: Invalid key";
+			break ;
 	}
 	oss << "\r\n";
 	return oss.str();

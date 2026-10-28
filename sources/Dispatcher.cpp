@@ -7,22 +7,29 @@
 # include "../headers/Commands/PrivmsgCommand.hpp"
 # include "../headers/Commands/PingCommand.hpp"
 # include "../headers/Commands/KickCommand.hpp"
+# include "../headers/Commands/ModeCommand.hpp"
+# include "../headers/Commands/TopicCommand.hpp"
+# include "../headers/Commands/ListCommand.hpp"
 # include "../headers/Server.hpp"
 # include "../headers/IRCParser.hpp"
 # include "../headers/Client.hpp"
 # include "../headers/Channel.hpp"
 # include "../headers/IRCError.hpp"
+# include <cctype>
 
 Dispatcher::Dispatcher() {
 	try {
-		_commands["PASS"] = new PassCommand();
-		_commands["NICK"] = new NickCommand();
-		_commands["USER"] = new UserCommand();
-		_commands["JOIN"] = new JoinCommand();
-        _commands["PING"] = new PingCommand();
-		_commands["INVITE"] = new InviteCommand();
-        _commands["PRIVMSG"] = new PrivmsgCommand();
-        _commands["KICK"] = new KickCommand();
+		_commands["pass"] = new PassCommand();
+		_commands["nick"] = new NickCommand();
+		_commands["user"] = new UserCommand();
+		_commands["join"] = new JoinCommand();
+        _commands["ping"] = new PingCommand();
+		_commands["invite"] = new InviteCommand();
+        _commands["privmsg"] = new PrivmsgCommand();
+        _commands["kick"] = new KickCommand();
+        _commands["mode"] = new ModeCommand();
+        _commands["topic"] = new TopicCommand();
+        _commands["list"] = new ListCommand();
 	} catch (std::exception& e) {
 		clear();
 		std::cout << e.what() << std::endl;
@@ -46,7 +53,11 @@ void	Dispatcher::clear()
 void    Dispatcher::dispatch(Server& sv, Client& cl, const Message& msg)
 {
 	try {
-		std::map<std::string, ICommand*>::const_iterator it = _commands.find(msg.command);
+		std::string command = msg.command;
+		for (size_t i = 0; i < command.size(); ++i)
+			command[i] = static_cast<char>(
+				std::tolower(static_cast<unsigned char>(command[i])));
+		std::map<std::string, ICommand*>::const_iterator it = _commands.find(command);
 		if (it == _commands.end())
 			throw IRCError(421, msg.command);
 		

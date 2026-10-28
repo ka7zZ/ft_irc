@@ -367,6 +367,8 @@ Channel*    Server::getChannel(const std::string& channelName)
 	return NULL;
 }
 
+const std::vector<Channel>&	Server::getChannels() const { return _channels; }
+
 const std::string&	Server::getPassword() const { return _password; }
 
 Client*	Server::getClientByNickname(const std::string& nickname)

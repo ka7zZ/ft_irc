@@ -69,7 +69,6 @@ bool	Channel::isVoiced(int fd) const
 bool	Channel::isBanned(const std::string& prefix) const
 {
 	std::vector<BanFormat>::const_iterator it;
-
 	for (it = _banList.begin(); it < _banList.end(); ++it)
 	{
 		if (it->bannedPrefix == prefix)
@@ -89,11 +88,21 @@ bool	Channel::isInvited(int fd) const
 	return false;
 }
 
+bool	Channel::isInviteOnly() { return hasMode('i'); }
+
+bool	Channel::isSecret() { return hasMode('s'); }
+
+bool	Channel::isNoExternalMsg() { return hasMode('n'); }
+
+bool	Channel::isModerated() { return hasMode('m'); }
+
+bool	Channel::isTopicOperatorOnly() { return hasMode('t'); }
+
 // SETTERS
 bool	Channel::setAdmin(int fd, bool oped)
 {
 	std::map<int, Member>::iterator	it = _members.find(fd);
-	if (it == _members.end() || it->second.isAdmin)
+	if (it == _members.end() || it->second.isAdmin == oped)
 		return false;
 	it->second.isAdmin = oped;
 	return true;
@@ -102,9 +111,9 @@ bool	Channel::setAdmin(int fd, bool oped)
 bool	Channel::setVoiced(int fd, bool voiced)
 {
 	std::map<int, Member>::iterator	it = _members.find(fd);
-	if (it == _members.end() || it->second.isVoiced)
+	if (it == _members.end() || it->second.isVoiced == voiced)
 		return false;
-	it->second.isAdmin = voiced;
+	it->second.isVoiced = voiced;
 	return true;
 }
 

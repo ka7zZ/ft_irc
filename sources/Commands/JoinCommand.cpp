@@ -77,12 +77,12 @@ void	JoinCommand::joinChannel(Server& sv, Client& cl, const std::string& name, c
         bool    isInvited = ch->isInvited(cl.getSocket());
 		if (ch->isInviteOnly() && !isInvited)
 			throw IRCError(473, name);
-        bool    isBanned = ch->isBanned(cl.getNickname());
+        bool    isBanned = ch->isBanned(cl.prefix());
         if (isBanned)
             throw IRCError(474, cl.getNickname());
 		if (!ch->getKey().empty() && ch->getKey() != key)
 			throw IRCError(475, name);
-		ch->addMember(&cl, false, true);
+		ch->addMember(&cl, false, false);
 		ch->removeInvited(cl.getSocket());
 	}
 	sv.broadcast(*ch, ":" + cl.prefix() + " JOIN " + ch->getName() + "\r\n", -1);

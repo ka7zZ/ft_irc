@@ -364,7 +364,8 @@ Minimum behavior: `MODE #a` returns 324, a non-operator gets 482, flags combine 
 
 | input | behavior |
 |---|---|
-| `WHO #a`, `WHOIS bob`, `LIST`, `USERHOST`, `MODE <nick>` | optional. A 421 or an empty end-of-list reply is acceptable, a crash is not |
+| `LIST [#a,#b]` | implemented: list public channels with member counts (`users` or `users/limit`) and topics; private/secret channels are shown only to members |
+| `WHO #a`, `WHOIS bob`, `USERHOST`, `MODE <nick>` | optional. A 421 or an empty end-of-list reply is acceptable, a crash is not |
 | `MODE #a b` / `+b` | clients send it after JOIN (ban list): ignore or 368 |
 
 ### Transport cases (the "never crash" requirement)

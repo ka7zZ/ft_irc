@@ -53,6 +53,11 @@ class Channel
 		bool 								isVoiced(int fd) const;
 		bool 								isBanned(const std::string& prefix) const;
 		bool								isInvited(int fd) const;
+		bool								isInviteOnly();
+		bool								isSecret();
+		bool								isNoExternalMsg();
+		bool								isModerated();
+		bool								isTopicOperatorOnly();
 		
 		// SETTERS
 		bool								setAdmin(int fd, bool oped);

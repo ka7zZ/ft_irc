@@ -66,6 +66,7 @@ class Server
 		void				stop();
 
 		Channel*			getChannel(const std::string& channelName);
+		const std::vector<Channel>&	getChannels() const;
 		const std::string&	getPassword() const;
 		Client*				getClientByNickname(const std::string& nickname);
 		Client* 			getClientByPrefix(const std::string& prefix);

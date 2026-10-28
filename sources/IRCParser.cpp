@@ -1,4 +1,5 @@
 #include "../headers/IRCParser.hpp"
+#include <cctype>
 
 IRCParser::IRCParser(const std::string& src) {
 	_index = 0;
@@ -61,6 +62,9 @@ void	IRCParser::tokenizer(const std::string& src)
 	if (!endOfSource(src) && currentChar(src) != '\n')
 	{
 		std::string cmd = appendUntil(src, " \r\n");
+		for (size_t i = 0; i < cmd.size(); ++i)
+			cmd[i] = static_cast<char>(
+				std::tolower(static_cast<unsigned char>(cmd[i])));
 		if (!cmd.empty())
 			addToken(COMMAND, cmd);
 	}
