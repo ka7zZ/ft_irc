@@ -4,10 +4,11 @@
 # include "../../headers/Client.hpp"
 # include "../../headers/Channel.hpp"
 # include "../../headers/IRCError.hpp"
+#include <string>
 
 bool	NickCommand::isLegit(const std::string& nick)
 {
-	const std::string	forbiddenChars = ",.!*@";
+	const std::string	forbiddenChars = " ,.!*@";
 	const std::string	forbiddenStart = "1234567890-#&$:";
 
 	if (forbiddenStart.find(nick[0]) != std::string::npos)
@@ -34,7 +35,7 @@ void	NickCommand::execute(Server& sv, Client& user, const Message& msg) const
 		throw IRCError(431);
 	if (!isLegit(nick))
 		throw IRCError(432, nick);
-	
+
 	Client* other = sv.getClientByNickname(nick);
 	if (other != NULL && other->getSocket() != user.getSocket())
 		throw IRCError(433, nick);

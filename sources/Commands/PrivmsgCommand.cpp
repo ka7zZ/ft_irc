@@ -26,6 +26,8 @@ void	PrivmsgCommand::sendOne(Server& sv, Client& user, const std::string& recipi
 	
 	if (recipient.empty())
 		throw IRCError(411, user.getNickname());
+	if (message.empty())
+		throw IRCError(412, user.getNickname());
 	const std::string line = ":" + user.prefix() + " PRIVMSG " + recipient + " :" + message + "\r\n";
 	if (recipient[0] == '#') {
 		Channel*	ch = sv.getChannel(recipient);

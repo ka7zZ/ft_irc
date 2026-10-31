@@ -904,9 +904,8 @@ implementation flow.
 | `getChannel(const std::string&)` | Finds a channel by exact name. |
 | `getChannels() const` | Returns a const reference to the channel vector, used by LIST. |
 | `getPassword() const` / `setPassword(...)` | Reads or updates the server password. |
-| `isChannel(...) const` / `isClient(...) const` | Tests whether a channel name or nickname exists. |
 | `createChannel(Client*, const std::string&)` | Creates a channel and adds its creator. |
-| `isClientInChannel(Channel*, Client*)` | Declared server query helper; check its current definition before relying on it. |
+| `isMemberOf(Channel*, Client*)` | Declared server query helper; check its current definition before relying on it. |
 | `sendPrivateMessage(...)` / `sendChannelMessage(...)` | Declared communication helpers; command handlers in this project commonly perform routing directly. |
 | `exceedsPendingLimit(size_t, size_t)` | Compares pending input bytes against a configured limit. |
 

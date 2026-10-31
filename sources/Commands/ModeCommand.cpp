@@ -91,11 +91,11 @@ void	ModeCommand::keyOpt(Server& sv, Client& user, Channel& ch, const Flag& f)
 		if (key.size() > 23 || key.find_first_of(" ,:") != std::string::npos)
 			throw IRCError(525, ch.getName());
 		ch.setKey(*f.parameterValue);
-		sv.broadcast(ch, ":ircserv " + user.prefix() + " MODE +k " + *f.parameterValue + "\r\n", -1);
+		sv.broadcast(ch,  ":" + user.prefix() + " MODE " + ch.getName() + " +k " + *f.parameterValue + "\r\n", -1);
 		return ;
 	}
 	ch.setKey("");
-	sv.broadcast(ch, ":ircserv " + user.prefix() + " MODE -k *\r\n", -1);
+	sv.broadcast(ch,  ":" + user.prefix() + " MODE " + ch.getName() + " -k *\r\n", -1);
 }
 
 void	ModeCommand::limitOpt(Server& sv, Client& user, Channel& ch, const Flag& f)
@@ -110,7 +110,14 @@ void	ModeCommand::limitOpt(Server& sv, Client& user, Channel& ch, const Flag& f)
 	}
 	if (!f.isParameterized || f.parameterValue->empty())
 		throw IRCError(461, "MODE");
-	long limit = std::atoi(f.parameterValue->c_str());
+	for (size_t i = 0; i < f.parameterValue->size(); ++i) {
+		if (!std::isdigit(static_cast<unsigned char>((*f.parameterValue)[i])))
+			throw IRCError(461, "MODE");
+	}
+	long limit;
+	std::istringstream input(*f.parameterValue);
+	if (!(input >> limit) || limit == 0)
+   		throw IRCError(461, "MODE");
 	if (ch.getLimit() == static_cast<size_t>(limit))
 		return ;
 	ch.setLimit(static_cast<size_t>(limit));

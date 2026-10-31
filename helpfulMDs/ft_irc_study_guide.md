@@ -806,7 +806,7 @@ void Server::broadcast(const Channel& ch, const std::string& msg, int exceptFd)
     }
 }
 ```
-Bugs we fixed: infinite loop (`while` that never advanced), `isChannel` missing `return false;` (UB), copying the whole map every call.
+Bugs we fixed: infinite loop (`while` that never advanced), copying the whole map every call.
 `getAll()` must be declared **`const std::map<int, Member>& getAll() const;`** — returning `const T` by value does nothing useful and copies.
 
 The compiler message you got (*"qualifiers dropped in binding reference"*) means: a **non-const** reference/iterator bound to a **const** thing. Rule: *everything coming out of `getAll()` is read via `const&` / `const_iterator`.* To modify members, add dedicated methods (`setAdmin`, `removeMember`).
@@ -1386,7 +1386,6 @@ C++98 traps: override must match the signature **exactly** (including `const`; t
 - Register **every** command in the Dispatcher constructor (PRIVMSG was missing).
 - Build PRIVMSG lines with prefix + `PRIVMSG` + target + `:` + text + `\r\n`; pass `user.getSocket()` as `exceptFd`.
 - Remove the stray `"Password approved."`; uppercase commands in the parser; fix `" NICK :"`.
-- `getAll()` → `const std::map<int, Member>&`; remove the redundant `isChannel` check in `broadcast`.
 - Rewrite KICK as one `kickOne(channel, nick)` + one loop (6.9): fix the `NULL` use in `catch`, the missing broadcast, `splitParams` into `users`, and the 403/442/482/401/441 order.
 - Move `splitParams` to one shared utility.
 - Implement PART, TOPIC, MODE, QUIT, NOTICE; then test with HexChat **and** `nc` (13.3).

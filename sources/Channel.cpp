@@ -1,8 +1,8 @@
 # include "../headers/Channel.hpp"
 # include "../headers/Client.hpp"
-# include "../headers/Server.hpp"
 # include <algorithm>
 # include <sstream>
+#include <string>
 
 Channel::Channel(const std::string& name)
 	: _name(name),

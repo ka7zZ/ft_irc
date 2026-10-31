@@ -1,6 +1,8 @@
-# include "Server.hpp"
-# include "IRCParser.hpp"
-# include "Dispatcher.hpp"
+# include "../headers/Server.hpp"
+# include "../headers/IRCParser.hpp"
+# include "../headers/Dispatcher.hpp"
+#include <cstddef>
+#include <string>
 # include <sys/socket.h>	// sockets
 # include <arpa/inet.h>		// htons
 # include <fcntl.h>			// fcntl
@@ -10,6 +12,7 @@
 # include <cerrno>			// EINTR, errno
 # include <stdexcept>		// throw errors
 # include <csignal>			// sig_atomic_t
+#include <vector>
 
 extern volatile sig_atomic_t	g_serverRunning;
 
@@ -23,21 +26,19 @@ Server::~Server()
 	stop();
 }
 
-// PRIVATE COMMANDS
-
-// 					SERVER UTILS
+//					.--------------.
+// 					| SERVER UTILS |
+//					'--------------'
 void    Server::rebuildPollFds()
 {
 	_pollSockets.clear();
 
-	// INSERT THE LISTENER AS FIRST POSITION
 	struct pollfd	serverPoll;
 	serverPoll.fd = _serverFd;
 	serverPoll.events = POLLIN;
 	serverPoll.revents = 0;
 	_pollSockets.push_back(serverPoll);
 
-	// INSERT ALL THE ACTIVE CLIENTS
 	std::map<int, Client>::iterator it;
 	for (it = _clients.begin(); it != _clients.end(); ++it) {
 		struct pollfd clientPoll;
@@ -56,14 +57,10 @@ void	Server::handlePollEvents()
 	for (size_t i = 0; i < _pollSockets.size(); i++) {
 		const int	currentFd = _pollSockets[i].fd;
 		const short	revents = _pollSockets[i].revents;
-
-		// CHECKING RECEIVED EVENTS
 		if (revents == 0)
 			continue ;
-		// CHECKING IF THE CLIENT IS STILL CONNECTED
 		if (currentFd != _serverFd && getClientBySocket(currentFd) == NULL)
 			continue ;
-		// CHECKING FOR FATAL ERRORS
 		if (revents & (POLLERR | POLLNVAL)) {
 			if (currentFd != _serverFd)
 				disconnectClient(currentFd, "socket error");
@@ -71,17 +68,13 @@ void	Server::handlePollEvents()
 		}
 		if (revents & POLLOUT)
 			sendData(currentFd);
-		// READING DATA FROM EVENT
 		if (revents & POLLIN) {
-			// IF SERVER SOCKET HAS POLLIN -> SOMEBODY IS TRYING TO CONNECT
-			// ELSE SOMEBODY CONNECTED IS INTERACTING WITH THE SERVER
 			if (currentFd == _serverFd)
 				registerClient();
 			else
 				handleClientData(currentFd);
 			continue ;
 		}
-		// PREMATURE ENDING CONNECTION
 		if ((revents & POLLHUP) && currentFd != _serverFd) {
 			disconnectClient(currentFd, "connection closed by peer.");
 		}
@@ -123,15 +116,12 @@ bool	Server::extractValidData(Client *target)
 			rawLine[rawLine.size() - 1] == '\r'
 		)
 			rawLine.erase(rawLine.size() - 1);
-		// PREVENT BUFFER OVERFLOW: 512 max octet per message permitted by IRC; 2 - '\r' + '\n'
 		if (rawLine.size() + 2 > 512) {
 			removeClient(fd);
 			return false;
 		} else if (rawLine.empty()) {
-			// ITERATING AGAIN
 			continue ;
 		}
-		// DISPATCH
 		try {
 			IRCParser	parser(rawLine);
 			Message		msg = parser.parseTokens();
@@ -141,15 +131,12 @@ bool	Server::extractValidData(Client *target)
 			disconnectClient(fd, "internal error");
 			return false;
 		}
-		// CASE OF NOT PASS
 		if (target->getMarkForClose())
 		{
 			if (!target->hasOutput())
 				removeClient(fd);
 			return false;
 		}
-
-		// SAFETY CASE OF COMMAND QUIT
 		if (getClientBySocket(fd) == NULL)
 			return false;
 	}
@@ -189,7 +176,22 @@ bool	Server::passBindListenErrors(sockaddr_in* serverAddress)
 	return true;
 }
 
-// 					SERVER INIT
+std::string	Server::normalizeString(const std::string& param) const
+{
+	std::string	normalized = param;
+
+	for (size_t i = 0; i < normalized.size(); ++i)
+	{
+		if (normalized[i] >= 'A' && normalized[i] <= 'Z')
+			normalized[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(normalized[i])));
+	}
+	return normalized;
+}
+
+//					.-------------.
+// 					| SERVER INIT |
+//					'-------------'
+
 bool	Server::initServer()
 {
 	// CREATE SERVER SOCKET
@@ -208,8 +210,10 @@ bool	Server::initServer()
 		return false;
 	return true;
 }
+//					.------------------.
+//					|  SERVER INTERACT |
+//					'------------------'
 
-//					SERVER INTERACT
 void	Server::registerClient()
 {
 		struct sockaddr_in	clientAddress;
@@ -325,8 +329,9 @@ void	Server::sendData(int targetFd)
 	if (cl->getMarkForClose() && !cl->hasOutput())
 		removeClient(targetFd);
 }
-
-// PUBLIC COMMANDS
+// .-------------------.
+// |  PUBLIC COMMANDS  |
+// '-------------------'
 
 void	Server::run()
 {
@@ -359,12 +364,27 @@ void	Server::stop()
 Channel*    Server::getChannel(const std::string& channelName)
 {
 	std::vector<Channel>::iterator  it;
+	const std::string	normalized = normalizeString(channelName);
+
 	for (it = _channels.begin(); it != _channels.end(); it++)
 	{
-		if (it->getName() == channelName)
+		if (normalizeString(it->getName()) == normalized)
 			return &(*it);
 	}
 	return NULL;
+}
+
+void	Server::removeChannel(Channel *ch)
+{
+	std::vector<Channel>::iterator	it;
+	for (it = _channels.begin(); it != _channels.end(); ++it)
+	{
+		if (&(*it) == ch)
+		{
+			_channels.erase(it);
+			return ;
+		}
+	}
 }
 
 const std::vector<Channel>&	Server::getChannels() const { return _channels; }
@@ -374,16 +394,18 @@ const std::string&	Server::getPassword() const { return _password; }
 Client*	Server::getClientByNickname(const std::string& nickname)
 {
 	std::map<int, Client>::iterator	it;
+	const std::string	normalized = normalizeString(nickname);
 
 	for (it = _clients.begin(); it != _clients.end(); it++) {
-		if (it->second.getNickname() == nickname) {
+		if (normalizeString(it->second.getNickname()) == normalized) {
 			return &it->second;
 		}
 	}
 	return NULL;
 }
 
-Client* Server::getClientByPrefix(const std::string& prefix) {
+Client* Server::getClientByPrefix(const std::string& prefix)
+{
     std::map<int, Client>::iterator	it;
 
 	for (it = _clients.begin(); it != _clients.end(); it++) {
@@ -396,32 +418,17 @@ Client* Server::getClientByPrefix(const std::string& prefix) {
 
 void	Server::setPassword(const std::string& password) { _password = password; }
 
-bool	Server::isChannel(const std::string& name) const
-{
-	std::vector<Channel>::const_iterator  it;
-	for (it = _channels.begin(); it != _channels.end(); it++)
-	{
-		if (it->getName() == name)
-			return true;
-	}
-	return false;
-}
-
-bool	Server::isClient(const std::string& name) const
-{
-	std::map<int, Client>::const_iterator	it;
-
-	for (it = _clients.begin(); it != _clients.end(); it++) {
-		if (it->second.getNickname() == name)
-			return true;
-	}
-	return false;
-}
-
 void	Server::createChannel(Client* cl, const std::string& name)
 {
-	if (isChannel(name))
-		return ;
+	std::vector<Channel>::const_iterator  it;
+	const std::string	normalized = normalizeString(name);
+
+	for (it = _channels.begin(); it != _channels.end(); it++)
+	{
+		if (normalizeString(it->getName()) == normalized)
+			return ;
+	}
+
 	Channel ch(name);
 
 	ch.addMember(cl, true, true);

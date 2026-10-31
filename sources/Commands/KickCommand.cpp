@@ -28,7 +28,6 @@ void	KickCommand::kickOne(Server& sv, Client& op, const std::string& chanName, c
 		throw IRCError(442, chanName);
 	if (!ch->isAdmin(op.getSocket()))
 		throw IRCError(482, chanName);
-
 	Client* target = sv.getClientByNickname(nick);
 	if (target == NULL)
 		throw IRCError(401, nick);
@@ -43,6 +42,8 @@ void	KickCommand::kickOne(Server& sv, Client& op, const std::string& chanName, c
 		-1
 	);
 	ch->removeMember(target->getSocket());
+	if (ch->getChannelSize() == 0)
+		sv.removeChannel(ch);
 }
 
 bool	KickCommand::needsRegistration() const { return true; }

@@ -12,8 +12,8 @@ struct Message;
 class NickCommand: public ICommand
 {
 	private:
-		static bool	isLegit(const std::string& nick);
-	
+		static bool			isLegit(const std::string& nick);
+		static std::string	normalizeNick(const std::string& param);
 	public:
 		bool	needsRegistration() const;
 		size_t	minParams() const;

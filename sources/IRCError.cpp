@@ -9,9 +9,9 @@ std::string IRCError::format(const std::string& arg) const
 	std::ostringstream  oss;
 
 	if (arg.empty())
-		oss << _code << ": " << "*" << ": ";
+		oss << ":ircserv " << _code << " * " << ": ";
 	else
-		oss << _code << ": " << arg << ": ";
+		oss << ":ircserv " << _code << " " << arg << ": ";
 
 	switch (_code) {
 		case 401:

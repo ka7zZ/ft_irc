@@ -31,32 +31,31 @@ class Server
 		Server& operator=(const Server&);
 
 		// SERVER UTILS
-		void	disconnectClient(int fd, const std::string& reason);
-		void	rebuildPollFds();
-		void	handlePollEvents();
-		void	shutdownServer();
-		bool	exceedsPendingLimit(size_t bytesRead, size_t maxBytes);
-		bool	extractValidData(Client *target);
-		bool	passCreateErrors();
-		bool	passBindListenErrors(sockaddr_in* serverAddress);
+		void				disconnectClient(int fd, const std::string& reason);
+		void				rebuildPollFds();
+		void				handlePollEvents();
+		void				shutdownServer();
+		bool				exceedsPendingLimit(size_t bytesRead, size_t maxBytes);
+		bool				extractValidData(Client *target);
+		bool				passCreateErrors();
+		bool				passBindListenErrors(sockaddr_in* serverAddress);
+		std::string			normalizeString(const std::string& param) const;
 
 		// SERVER INIT
-		bool	initServer();
+		bool				initServer();
 
 		// SERVER INTERACT
-		void	registerClient();
-		void	removeClient(int clientFd);
+		void				registerClient();
+		void				removeClient(int clientFd);
 
 		// HANDLING RAW DATA
-		void	handleClientData(int clientFd);
+		void				handleClientData(int clientFd);
 
 		// GETTING USERS
-		Client*	getClientBySocket(int fd);
-		
+		Client*				getClientBySocket(int fd);
 
 		// COMMUNICATION
-		
-		void	sendData(int targetFd);
+		void				sendData(int targetFd);
 
 	public:
 		explicit Server(int port, const std::string& password);
@@ -72,11 +71,10 @@ class Server
 		Client* 			getClientByPrefix(const std::string& prefix);
 		void				setPassword(const std::string& password);
 
-		bool				isChannel(const std::string& name) const;
-		bool				isClient(const std::string& name) const;
-		bool				isClientInChannel(Channel* ch, Client* cl);
+		bool				isMemberOf(Channel* ch, Client* cl);
 		
 		void				createChannel(Client* cl, const std::string& name);
+		void				removeChannel(Channel *ch);
 		
 		void				sendTo(Client& cl, const std::string& text);
 		void				broadcast(const Channel& ch, const std::string& msg, int exceptFd);

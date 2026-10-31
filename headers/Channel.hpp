@@ -77,7 +77,6 @@ class Channel
 		void								addInvited(int fd);
 		void								removeInvited(int fd);
 		bool								hasMode(char c);
-
 };
 
 #endif
