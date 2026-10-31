@@ -16,6 +16,7 @@ class Client
 		std::string _outBuffer;
 		bool        _hasPass;
 		bool		_hasNick;
+		bool		_hasUser;
 		bool		_isAuth;
 		bool		_closeAfterFlush;
 		bool		_markForClose;
@@ -35,6 +36,7 @@ class Client
 		const std::string&	getOutBuffer() const;
 		bool	getPassState() const;
 		bool	getNickState() const;
+		bool	getUserState() const;
 		bool	getAuthState() const;
 		bool	getMarkForClose() const;
 		bool	isInvisible() const;
@@ -45,6 +47,7 @@ class Client
 		void	setRealname(const std::string& realname);
 		void	setPassState(bool pass);
 		void	setNickState(bool nick);
+		void	setUserState(bool user);	
 		void	setAuthState(bool isAuth);
 		void	setMarkForClose(bool mark);
 		void	setInvisible(bool visibility);

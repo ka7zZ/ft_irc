@@ -4,6 +4,7 @@ Client::Client() :
     _socketFd(-1),
     _hasPass(false),
     _hasNick(false),
+    _hasUser(false),
     _isAuth(false),
     _closeAfterFlush(false),
     _isInvisible(false) {}
@@ -14,6 +15,7 @@ Client::Client(int socketFd, const std::string& hostname)
     _hostname(hostname),
     _hasPass(false),
     _hasNick(false),
+    _hasUser(false),
     _isAuth(false),
     _closeAfterFlush(false),
     _markForClose(false),
@@ -35,6 +37,8 @@ bool	Client::getPassState() const { return _hasPass; }
 
 bool	Client::getNickState() const { return _hasNick; };
 
+bool	Client::getUserState() const { return _hasUser; };
+
 bool	Client::getAuthState() const { return _isAuth; }
 
 bool	Client::getMarkForClose() const { return _markForClose; }
@@ -50,6 +54,8 @@ void	Client::setRealname(const std::string& realname) { _realname = realname; }
 void	Client::setPassState(bool pass) { _hasPass = pass; }
 
 void	Client::setNickState(bool nick) { _hasNick = nick; }
+
+void	Client::setUserState(bool user) { _hasUser = user; }
 
 void	Client::setAuthState(bool isAuth) { _isAuth = isAuth; }
 
