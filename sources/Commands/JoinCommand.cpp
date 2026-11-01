@@ -1,4 +1,4 @@
-#include "../../headers/Commands/JoinCommand.hpp"
+# include "../../headers/Commands/JoinCommand.hpp"
 # include "../../headers/Server.hpp"
 # include "../../headers/IRCParser.hpp"
 # include "../../headers/Client.hpp"

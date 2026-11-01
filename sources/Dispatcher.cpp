@@ -6,6 +6,7 @@
 # include "../headers/Commands/NickCommand.hpp"
 # include "../headers/Commands/PrivmsgCommand.hpp"
 # include "../headers/Commands/PingCommand.hpp"
+# include "../headers/Commands/PartCommand.hpp"
 # include "../headers/Commands/KickCommand.hpp"
 # include "../headers/Commands/ModeCommand.hpp"
 # include "../headers/Commands/TopicCommand.hpp"
@@ -19,17 +20,19 @@
 
 Dispatcher::Dispatcher() {
 	try {
-		_commands["pass"] = new PassCommand();
+		_commands["invite"] = new InviteCommand();
 		_commands["nick"] = new NickCommand();
 		_commands["user"] = new UserCommand();
 		_commands["join"] = new JoinCommand();
-        _commands["ping"] = new PingCommand();
-		_commands["invite"] = new InviteCommand();
         _commands["privmsg"] = new PrivmsgCommand();
+		_commands["part"] = new PartCommand();
+		_commands["pass"] = new PassCommand();
+		_commands["ping"] = new PingCommand();
         _commands["kick"] = new KickCommand();
         _commands["mode"] = new ModeCommand();
         _commands["topic"] = new TopicCommand();
         _commands["list"] = new ListCommand();
+		
 	} catch (std::exception& e) {
 		clear();
 		std::cout << e.what() << std::endl;

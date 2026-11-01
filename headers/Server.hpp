@@ -70,8 +70,6 @@ class Server
 		Client*				getClientByNickname(const std::string& nickname);
 		Client* 			getClientByPrefix(const std::string& prefix);
 		void				setPassword(const std::string& password);
-
-		bool				isMemberOf(Channel* ch, Client* cl);
 		
 		void				createChannel(Client* cl, const std::string& name);
 		void				removeChannel(Channel *ch);

@@ -23,6 +23,7 @@ SOURCES		= main.cpp \
 			sources/Commands/KickCommand.cpp \
 			sources/Commands/ModeCommand.cpp \
 			sources/Commands/TopicCommand.cpp \
+			sources/Commands/PartCommand.cpp \
 			sources/Commands/ListCommand.cpp
 
 BONUS_SOURCES	= bonus/main.cpp \

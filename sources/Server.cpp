@@ -128,7 +128,6 @@ bool	Server::extractValidData(Client *target)
 			if (!msg.command.empty())
 				_dispatcher.dispatch(*this, *target, msg);
 		} catch (std::exception& e) {
-			disconnectClient(fd, "internal error");
 			return false;
 		}
 		if (target->getMarkForClose())
@@ -233,12 +232,12 @@ void	Server::registerClient()
 	if (clientFd < 0)
 		return ;
 	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0) {
-		std::cout << "ERROR: Unable to set non-blocking client socket" << std::endl;
+		std::cout << "ERR: Unable to set non-blocking client socket" << std::endl;
 		close(clientFd);
 		return ;
 	}
 	_clients[clientFd] = Client(clientFd, host);
-	std::cout << "[SOCKET #" << clientFd << "] Successfully registered." << std::endl;
+	std::cout << "[SOCKET #" << clientFd << "] Successfully connected." << std::endl;
 }
 
 void	Server::removeClient(int clientFd)
