@@ -19,12 +19,13 @@ class Server
 		int			_port;
 		std::string _password;
 		int			_serverFd;
+		ssize_t		_counter;
 
-		std::map<int, Client>				_clients;	
-		std::vector<struct pollfd>			_pollSockets;
-		std::map<std::string, Client>		_userPasswords;
-		std::vector<Channel>                _channels;
-		Dispatcher							_dispatcher;
+		std::map<int, Client>			_clients;	
+		std::vector<struct pollfd>		_pollSockets;
+		std::map<std::string, Client>	_userPasswords;
+		std::map<std::string, Channel>	_channels;
+		Dispatcher						_dispatcher;
 
 		// OCF
 		Server(const Server&);
@@ -64,20 +65,19 @@ class Server
 		void				run();
 		void				stop();
 
-		Channel*			getChannel(const std::string& channelName);
-		const std::vector<Channel>&	getChannels() const;
-		const std::string&	getPassword() const;
-		Client*				getClientByNickname(const std::string& nickname);
-		Client* 			getClientByPrefix(const std::string& prefix);
-		void				setPassword(const std::string& password);
+		Channel*								getChannel(const std::string& channelName);
+		const std::map<std::string, Channel>&	getChannels() const;
+		const std::string&						getPassword() const;
+		Client*									getClientByNickname(const std::string& nickname);
+		Client* 								getClientByPrefix(const std::string& prefix);
+		void									setPassword(const std::string& password);
 		
-		void				createChannel(Client* cl, const std::string& name);
-		void				removeChannel(Channel *ch);
+		void									createChannel(Client* cl, const std::string& name);
+		void									removeChannel(Channel *ch);
 		
-		void				sendTo(Client& cl, const std::string& text);
-		void				broadcast(const Channel& ch, const std::string& msg, int exceptFd);
-		void				sendPrivateMessage(int senderFd, int receiverFd, const std::string& message);
-		void				sendChannelMessage(int senderFd, const std::string& channelName, const std::string& message);
+		void									sendTo(Client& cl, const std::string& text);
+		void									broadcast(const Channel& ch, const std::string& msg, int exceptFd);
+		void									broadcastAll(Client* cl, const std::string& msg);
 };
 
 #endif

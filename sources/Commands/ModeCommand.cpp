@@ -85,6 +85,8 @@ void	ModeCommand::banOpt(Server& sv, Client& user, Channel& ch, const Flag& f)
 void	ModeCommand::keyOpt(Server& sv, Client& user, Channel& ch, const Flag& f)
 {
 	if (f.act == ADD) {
+		if (!ch.getKey().empty())
+			throw IRCError(467, ch.getName());
 		if (!f.isParameterized || f.parameterValue->empty())
 			throw IRCError(461, user.getNickname());
 		const std::string& key = *f.parameterValue;
@@ -169,7 +171,10 @@ void	ModeCommand::getFlagArray(const Message& msg, std::vector<Flag>& flags)
 		}
 		Flag	f;
 		f.act = action;
-		f.flag = inputFlags[index];
+		if (std::isprint(static_cast<unsigned char>(inputFlags[index])))
+			f.flag = inputFlags[index];
+		else
+			f.flag = '\0';
 		f.isParameterized = false;
 		f.parameterValue = NULL;
 		if (takesParam(f.flag, f.act) && paramPos < msg.params.size()) {

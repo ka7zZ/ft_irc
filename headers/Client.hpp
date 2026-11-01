@@ -21,6 +21,7 @@ class Client
 		bool		_markForClose;
 		bool		_isInvisible;
 		bool		_isBot;
+		bool		_receivedMessage;
 
 	public:
 		// CONSTRUCTORS
@@ -41,6 +42,7 @@ class Client
 		bool	getMarkForClose() const;
 		bool	isInvisible() const;
 		bool	isBot() const;
+		bool	isReceived() const;
 
 
 		// SETTERS
@@ -54,6 +56,7 @@ class Client
 		void	setMarkForClose(bool mark);
 		void	setInvisible(bool visibility);
 		void	setBot(bool isBot);
+		void	setReceived(bool isReceived);
 		// GETTING THE PREFIX WITH THE RIGHT FORMAT
 		std::string prefix() const;
 

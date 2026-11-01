@@ -42,6 +42,7 @@ class Channel
 		Client*								getMember(int memberFd) const;
 		Client*								getMemberByNickname(const std::string& nickname) const;
 		const std::map<int, Member>&		getAllMembers() const;
+		std::map<int, Member>&				getMembers();
 		const std::vector<BanFormat>&		getBanList() const;
 		const std::string&					getKey() const;
 		size_t								getLimit() const;

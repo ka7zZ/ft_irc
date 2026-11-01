@@ -46,22 +46,22 @@ void	ListCommand::execute(Server& sv, Client& user, const Message& msg) const
 	sv.sendTo(user, ":ircserv 321 " + user.getNickname()
 		+ " Channel :Users Name\r\n");
 
-	const std::vector<Channel>& channels = sv.getChannels();
-	std::vector<Channel>::const_iterator it;
+	const std::map<std::string, Channel>& channels = sv.getChannels();
+	std::map<std::string, Channel>::const_iterator it;
 	for (it = channels.begin(); it != channels.end(); ++it)
 	{
-		if (!isRequested(requested, it->getName()))
+		if (!isRequested(requested, it->second.getName()))
 			continue ;
-		const std::string& modes = it->getModes();
-		if (!it->isMember(user.getSocket()) && 
+		const std::string& modes = it->second.getModes();
+		if (!it->second.isMember(user.getSocket()) && 
 			(modes.find('s') != std::string::npos || modes.find('p') != std::string::npos))
 			continue ;
 		std::ostringstream	reply;
 		reply << ":ircserv 322 " << user.getNickname() << " "
-			<< it->getName() << " " << it->getChannelSize();
-		if (it->getLimit() > 0)
-			reply << "/" << it->getLimit();
-		reply << " :" << it->getTopic();
+			<< it->second.getName() << " " << it->second.getChannelSize();
+		if (it->second.getLimit() > 0)
+			reply << "/" << it->second.getLimit();
+		reply << " :" << it->second.getTopic();
 		sv.sendTo(user, reply.str() + "\r\n");
 	}
 	sv.sendTo(user, ":ircserv 323 " + user.getNickname() + " :End of /LIST\r\n");

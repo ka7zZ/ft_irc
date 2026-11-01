@@ -7,7 +7,8 @@ Client::Client() :
     _hasUser(false),
     _isAuth(false),
     _isInvisible(false),
-    _isBot(false) {}
+    _isBot(false),
+    _receivedMessage(false) {}
 
 Client::Client(int socketFd, const std::string& hostname)
     :
@@ -19,7 +20,8 @@ Client::Client(int socketFd, const std::string& hostname)
     _isAuth(false),
     _markForClose(false),
     _isInvisible(false),
-    _isBot(false) {}
+    _isBot(false),
+    _receivedMessage(false) {}
 
 int	Client::getSocket() const { return _socketFd; }
 
@@ -47,6 +49,8 @@ bool	Client::isInvisible() const { return _isInvisible; }
 
 bool    Client::isBot() const { return _isBot; }
 
+bool	Client::isReceived() const { return _receivedMessage; }
+
 void	Client::setNickname(const std::string& nickname) { _nickname = nickname; }
 
 void	Client::setUsername(const std::string& username) { _username = username; }
@@ -66,6 +70,8 @@ void	Client::setMarkForClose(bool mark) { _markForClose = mark; }
 void	Client::setInvisible(bool invisible) { _isInvisible = invisible; }
 
 void    Client::setBot(bool isBot) { _isBot = isBot; }
+
+void    Client::setReceived(bool isReceived) { _receivedMessage = isReceived; }
 
 std::string Client::prefix() const { return _nickname + "!" + _username + "@" + _hostname; }
 

@@ -34,10 +34,10 @@ void	PrivmsgCommand::sendOne(Server& sv, Client& user, const std::string& recipi
         if (ch == NULL)
 			throw IRCError(403, recipient);
         bool    member = ch->isMember(user.getSocket());
-        if (ch->isSecret() && !ch->isMember(user.getSocket()))
+        if (ch->isSecret() && !member)
             throw IRCError(403, recipient);
 		if (ch->isBanned(user.prefix())
-			|| (!member && ch->isNoExternalMsg())
+			|| !member
 			|| (ch->isModerated() && !ch->isAdmin(user.getSocket())
 				&& !ch->isVoiced(user.getSocket())))
 			throw IRCError(404, recipient);

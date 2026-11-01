@@ -19,7 +19,8 @@ extern volatile sig_atomic_t	g_serverRunning;
 Server::Server(int port, const std::string& password)
 	: _port(port),
 	_password(password),
-	_serverFd(-1) {}
+	_serverFd(-1),
+	_counter(0) {}
 
 Server::~Server()
 {
@@ -73,7 +74,7 @@ void	Server::handlePollEvents()
 				registerClient();
 			else
 				handleClientData(currentFd);
-			continue ;
+			// continue ;
 		}
 		if ((revents & POLLHUP) && currentFd != _serverFd) {
 			disconnectClient(currentFd, "connection closed by peer.");
@@ -247,20 +248,19 @@ void	Server::removeClient(int clientFd)
 	// REMOVE USER FROM REGISTRY
 	if (itClient == _clients.end()) 
 		return ;
-	std::vector<Channel>::iterator  itChannel = _channels.begin();
+	std::map<std::string, Channel>::iterator  itChannel = _channels.begin();
 	while (itChannel != _channels.end())
 	{
-		itChannel->removeInvited(clientFd);
-		if (itChannel->isMember(clientFd))
+		itChannel->second.removeInvited(clientFd);
+		if (itChannel->second.isMember(clientFd))
 		{
-			itChannel->removeMember(clientFd);
-			if(itChannel->getChannelSize() > 0)
-				broadcast(*itChannel, ":" + itClient->second.prefix() + " QUIT :Client disconnected.\r\n", -1);
+			itChannel->second.removeMember(clientFd);
+			if(itChannel->second.getChannelSize() > 0)
+				broadcast(itChannel->second, ":" + itClient->second.prefix() + " QUIT :Client disconnected.\r\n", -1);
 		}
-		if (itChannel->getChannelSize() == 0)
-			removeChannel(&(*itChannel));
-		else
-			++itChannel;
+		if (itChannel->second.getChannelSize() == 0)
+			removeChannel(&itChannel->second);
+		++itChannel;
 	}
 	_clients.erase(itClient);
 	close(clientFd);
@@ -362,31 +362,25 @@ void	Server::stop()
 
 Channel*    Server::getChannel(const std::string& channelName)
 {
-	std::vector<Channel>::iterator  it;
+	std::map<std::string, Channel>::iterator  it;
 	const std::string	normalized = normalizeString(channelName);
 
 	for (it = _channels.begin(); it != _channels.end(); it++)
 	{
-		if (normalizeString(it->getName()) == normalized)
-			return &(*it);
+		if (normalizeString(it->second.getName()) == normalized)
+			return &it->second;
 	}
 	return NULL;
 }
 
 void	Server::removeChannel(Channel *ch)
 {
-	std::vector<Channel>::iterator	it;
-	for (it = _channels.begin(); it != _channels.end(); ++it)
-	{
-		if (&(*it) == ch)
-		{
-			_channels.erase(it);
-			return ;
-		}
-	}
+	std::map<std::string, Channel>::iterator	it = _channels.find(ch->getName());
+	if (it != _channels.end())
+		_channels.erase(it);
 }
 
-const std::vector<Channel>&	Server::getChannels() const { return _channels; }
+const std::map<std::string, Channel>&	Server::getChannels() const { return _channels; }
 
 const std::string&	Server::getPassword() const { return _password; }
 
@@ -419,20 +413,21 @@ void	Server::setPassword(const std::string& password) { _password = password; }
 
 void	Server::createChannel(Client* cl, const std::string& name)
 {
-	std::vector<Channel>::const_iterator  it;
+	std::map<std::string, Channel>::const_iterator  it;
 	const std::string	normalized = normalizeString(name);
 
 	for (it = _channels.begin(); it != _channels.end(); it++)
 	{
-		if (normalizeString(it->getName()) == normalized)
+		if (normalizeString(it->second.getName()) == normalized)
 			return ;
 	}
 
 	Channel ch(name);
 
 	ch.addMember(cl, true, true);
-	_channels.push_back(ch);
+	_channels.insert(std::make_pair(name, ch));
 }
+
 // SEND MESSAGES
 void	Server::sendTo(Client& cl, const std::string& text)
 {
@@ -448,6 +443,27 @@ void	Server::broadcast(const Channel& ch, const std::string& msg, int exceptFd)
 	{
 		if (exceptFd > 0 && it->first == exceptFd)
 			continue ;
-		sendTo(*it->second.cl, msg);
+		if (!it->second.cl->isReceived())
+			sendTo(*it->second.cl, msg);
+	}
+}
+
+void	Server::broadcastAll(Client* cl, const std::string& msg)
+{
+	std::map<std::string, Channel>::iterator	temp = _channels.begin();
+	
+	for (;temp != _channels.end(); ++temp)
+	{
+		if (temp->second.isMember(cl->getSocket())) 
+		{
+			broadcast(temp->second, msg, -1);
+			std::map<int, Member>&	members = temp->second.getMembers();
+			std::map<int, Member>::iterator	membIt;
+			for (membIt = members.begin(); membIt != members.end(); ++membIt)
+			{
+				if (!membIt->second.cl->isReceived())
+					membIt->second.cl->setReceived(true);
+			}
+		}
 	}
 }

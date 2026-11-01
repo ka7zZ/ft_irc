@@ -33,6 +33,8 @@ Client*	Channel::getMemberByNickname(const std::string& nickname) const
 
 const std::map<int, Member>&	Channel::getAllMembers() const { return _members; }
 
+std::map<int, Member>&	Channel::getMembers() { return _members; }
+
 const std::vector<BanFormat>& Channel::getBanList() const { return _banList; }
 
 const std::string&	Channel::getKey() const { return _key; }
