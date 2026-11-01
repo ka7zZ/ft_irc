@@ -4,7 +4,6 @@
 # include "../../headers/Client.hpp"
 # include "../../headers/Channel.hpp"
 # include "../../headers/IRCError.hpp"
-#include <string>
 
 bool	NickCommand::isLegit(const std::string& nick)
 {
@@ -30,7 +29,7 @@ void	NickCommand::execute(Server& sv, Client& user, const Message& msg) const
 		throw IRCError(451);
 
 	const std::string&	nick = msg.params[0].value;
-	
+
 	if (nick.empty())
 		throw IRCError(431);
 	if (!isLegit(nick))
@@ -41,14 +40,21 @@ void	NickCommand::execute(Server& sv, Client& user, const Message& msg) const
 		throw IRCError(433, nick);
 	if (nick == user.getNickname())
 		return ;
-	
+
 	bool	alreadyRegistered = user.getAuthState();
 	std::string	oldPrefix = user.prefix();
-	
+
 	user.setNickname(nick);
 	user.setNickState(true);
 
 	if (alreadyRegistered)
-		sv.sendTo(user, ":" + oldPrefix + " NICK: " + nick + "\r\n");
+		sv.sendTo(user, ":" + oldPrefix + " NICK :" + nick + "\r\n");
+	else if (user.getPassState() && user.getUserState())
+	{
+		user.setAuthState(true);
+		sv.sendTo(user, ":ircserv 001 " + user.getNickname() + " :Welcome to the Internet Relay Network " + user.prefix() + "\r\n");
+		sv.sendTo(user, ":ircserv 002 " + user.getNickname() + " :Your host is ircserv, running version ft_irc\r\n");
+		sv.sendTo(user, ":ircserv 003 " + user.getNickname() + " :This server was created by two 42 students\r\n");
+		sv.sendTo(user, ":ircserv 004 " + user.getNickname() + " ircserv ft_irc i ibklmnopstv\r\n");
+	}
 }
-

@@ -322,7 +322,7 @@ void	Server::sendData(int targetFd)
 	if (cl == NULL || !cl->hasOutput())
 		return ;
 	const std::string&	out = cl->getOutBuffer();
-	int			bytes = send(targetFd, out.c_str(), out.length(), 0);
+	int			bytes = send(targetFd, out.c_str(), out.length(), MSG_NOSIGNAL);
 
 	if (bytes > 0)
 		cl->eraseOutBuffer(bytes);
