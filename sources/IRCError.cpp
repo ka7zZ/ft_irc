@@ -98,6 +98,9 @@ std::string IRCError::format(const std::string& arg) const
         case 525:
             oss << "ERR_INVALIDKEY: Invalid key";
 			break ;
+		case 599:
+            oss << "ERR_INVALIDNAME: The name is reserved for the dicebot";
+			break ;
 	}
 	oss << "\r\n";
 	return oss.str();

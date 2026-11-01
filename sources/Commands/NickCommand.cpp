@@ -29,7 +29,8 @@ void	NickCommand::execute(Server& sv, Client& user, const Message& msg) const
 		throw IRCError(451);
 
 	const std::string&	nick = msg.params[0].value;
-
+	if (nick == BOT_NAME && !user.isBot())
+		throw IRCError(599);
 	if (nick.empty())
 		throw IRCError(431);
 	if (!isLegit(nick))

@@ -12,6 +12,8 @@
 # include <netinet/in.h>	// sockaddr_in
 
 
+#define BOT_PASSWORD "$dice42"
+#define BOT_NAME "dicebot"
 
 class Server
 {

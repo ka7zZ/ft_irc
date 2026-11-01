@@ -1,4 +1,4 @@
-# include "../../headers/Commands/JoinCommand.hpp"
+#include "../../headers/Commands/JoinCommand.hpp"
 # include "../../headers/Server.hpp"
 # include "../../headers/IRCParser.hpp"
 # include "../../headers/Client.hpp"
@@ -104,7 +104,12 @@ void	JoinCommand::execute(Server& sv, Client& user, const Message& msg) const
 	
 	for (size_t i = 0; i < channels.size(); i++) {
 		try {
-			if (!keys.empty() && i < keys.size())
+			if (user.isBot())
+			{
+				IRCError(599);
+				continue;
+			}
+			else if (!keys.empty() && i < keys.size())
 				joinChannel(sv, user, channels[i], keys[i]);
 			else
 				joinChannel(sv, user, channels[i], "");
@@ -113,3 +118,6 @@ void	JoinCommand::execute(Server& sv, Client& user, const Message& msg) const
 		}
 	}
 }
+
+
+ 

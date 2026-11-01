@@ -5,17 +5,20 @@
 # include "../../headers/Channel.hpp"
 # include "../../headers/IRCError.hpp"
 
+
 bool	PassCommand::needsRegistration() const { return false; }
 
 size_t	PassCommand::minParams() const { return 1; }
 
 void 	PassCommand::execute(Server& sv, Client& user, const Message& msg) const
 {
-	if (user.getPassState())
+	if (msg.params[0].value == BOT_PASSWORD)
+    		user.setBot(true);
+	else if (user.getPassState())
 		throw IRCError(462, user.getNickname());
-    if (msg.params[0].value.empty())
+    else if (msg.params[0].value.empty())
 		throw IRCError(461);
-	if (msg.params[0].value != sv.getPassword()) {
+	else if (msg.params[0].value != sv.getPassword()) {
 		user.setMarkForClose(true);
 		throw IRCError(464);
 	}
