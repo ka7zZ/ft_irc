@@ -259,7 +259,7 @@ void	Server::removeClient(int clientFd)
 				broadcast(*itChannel, ":" + itClient->second.prefix() + " QUIT :Client disconnected.\r\n", -1);
 		}
 		if (itChannel->getChannelSize() == 0)
-			itChannel = _channels.erase(itChannel);
+			removeChannel(&(*itChannel));
 		else
 			++itChannel;
 	}
