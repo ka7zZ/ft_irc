@@ -2,7 +2,7 @@
 """
 irc_torture.py - ft_irc robustness + defense tester (Python 3, stdlib only).
  
-    python3 irc_torture.py --port 6667 --pass pass --pid $(pgrep -x valgrind.bin | head -1)
+    python3 irc_tester2.py --port 6667 --pass pass --pid $(pgrep -x valgrind.bin | head -1)
  
 Options:
     --pid N            server PID: enables fd / RSS / CPU-spin checks and signal tests

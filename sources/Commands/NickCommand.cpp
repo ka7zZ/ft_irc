@@ -47,8 +47,9 @@ void	NickCommand::execute(Server& sv, Client& user, const Message& msg) const
 	user.setNickname(nick);
 	user.setNickState(true);
 
-	if (alreadyRegistered)
+	if (alreadyRegistered) {
 		sv.broadcastAll(&user, ":" + oldPrefix + " NICK :" + nick + "\r\n");
+	}
 	else if (user.getPassState() && user.getUserState())
 	{
 		user.setAuthState(true);

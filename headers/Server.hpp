@@ -58,6 +58,9 @@ class Server
 		// COMMUNICATION
 		void				sendData(int targetFd);
 
+		// REFRESH MEMBERSHIPS
+		void				refreshReceivedFlag();
+
 	public:
 		explicit Server(int port, const std::string& password);
 		~Server();

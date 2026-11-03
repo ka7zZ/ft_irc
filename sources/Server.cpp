@@ -74,7 +74,6 @@ void	Server::handlePollEvents()
 				registerClient();
 			else
 				handleClientData(currentFd);
-			// continue ;
 		}
 		if ((revents & POLLHUP) && currentFd != _serverFd) {
 			disconnectClient(currentFd, "connection closed by peer.");
@@ -248,19 +247,24 @@ void	Server::removeClient(int clientFd)
 	// REMOVE USER FROM REGISTRY
 	if (itClient == _clients.end()) 
 		return ;
-	std::map<std::string, Channel>::iterator  itChannel = _channels.begin();
-	while (itChannel != _channels.end())
+	std::map<std::string, Channel>::iterator  itChannel;
+	for (itChannel = _channels.begin(); itChannel != _channels.end(); )
 	{
 		itChannel->second.removeInvited(clientFd);
 		if (itChannel->second.isMember(clientFd))
 		{
 			itChannel->second.removeMember(clientFd);
-			if(itChannel->second.getChannelSize() > 0)
+			if (itChannel->second.getChannelSize() > 0)
 				broadcast(itChannel->second, ":" + itClient->second.prefix() + " QUIT :Client disconnected.\r\n", -1);
 		}
 		if (itChannel->second.getChannelSize() == 0)
-			removeChannel(&itChannel->second);
-		++itChannel;
+		{
+			std::map<std::string, Channel>::iterator eraseBuffer = itChannel;
+			++itChannel;
+			_channels.erase(eraseBuffer);
+		}
+		else
+			++itChannel;
 	}
 	_clients.erase(itClient);
 	close(clientFd);
@@ -322,11 +326,27 @@ void	Server::sendData(int targetFd)
 		return ;
 	const std::string&	out = cl->getOutBuffer();
 	int			bytes = send(targetFd, out.c_str(), out.length(), MSG_NOSIGNAL);
-
+	if (bytes <= 0)
+		disconnectClient(targetFd, "send failed");
 	if (bytes > 0)
 		cl->eraseOutBuffer(bytes);
 	if (cl->getMarkForClose() && !cl->hasOutput())
 		removeClient(targetFd);
+}
+
+void	Server::refreshReceivedFlag()
+{
+	std::map<std::string, Channel>::iterator	it = _channels.begin();
+
+	for (;it != _channels.end(); ++it) {
+		std::map<int, Member>&	members = it->second.getMembers();
+		std::map<int, Member>::iterator	membIt;
+		for (membIt = members.begin(); membIt != members.end(); ++membIt)
+		{
+			if (membIt->second.cl->isReceived())
+				membIt->second.cl->setReceived(false);
+		}
+	}
 }
 // .-------------------.
 // |  PUBLIC COMMANDS  |
@@ -346,8 +366,11 @@ void	Server::run()
 		if (poll(&_pollSockets[0], _pollSockets.size(), -1) < 0)
 		{
 			// CATCHING THE SIGINT AND RELOAD LOOP
-			if (errno == EINTR)
+			if (errno == EINTR) {
+				if (!g_serverRunning)
+					break;
 				continue ;
+			}	
 			throw std::runtime_error("poll failed.");
 		}
 		// PROCESSING EVENTS
@@ -376,6 +399,7 @@ Channel*    Server::getChannel(const std::string& channelName)
 void	Server::removeChannel(Channel *ch)
 {
 	std::map<std::string, Channel>::iterator	it = _channels.find(ch->getName());
+
 	if (it != _channels.end())
 		_channels.erase(it);
 }
@@ -399,7 +423,7 @@ Client*	Server::getClientByNickname(const std::string& nickname)
 
 Client* Server::getClientByPrefix(const std::string& prefix)
 {
-    std::map<int, Client>::iterator	it;
+	std::map<int, Client>::iterator	it;
 
 	for (it = _clients.begin(); it != _clients.end(); it++) {
 		if (it->second.prefix() == prefix) {
@@ -450,14 +474,14 @@ void	Server::broadcast(const Channel& ch, const std::string& msg, int exceptFd)
 
 void	Server::broadcastAll(Client* cl, const std::string& msg)
 {
-	std::map<std::string, Channel>::iterator	temp = _channels.begin();
+	std::map<std::string, Channel>::iterator	it = _channels.begin();
 	
-	for (;temp != _channels.end(); ++temp)
+	for (;it != _channels.end(); ++it)
 	{
-		if (temp->second.isMember(cl->getSocket())) 
+		if (it->second.isMember(cl->getSocket())) 
 		{
-			broadcast(temp->second, msg, -1);
-			std::map<int, Member>&	members = temp->second.getMembers();
+			broadcast(it->second, msg, -1);
+			std::map<int, Member>&	members = it->second.getMembers();
 			std::map<int, Member>::iterator	membIt;
 			for (membIt = members.begin(); membIt != members.end(); ++membIt)
 			{
@@ -466,4 +490,6 @@ void	Server::broadcastAll(Client* cl, const std::string& msg)
 			}
 		}
 	}
+	refreshReceivedFlag();
 }
+

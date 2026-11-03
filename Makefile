@@ -15,16 +15,17 @@ SOURCES		= main.cpp \
 			sources/Server.cpp \
 			sources/Commands/InviteCommand.cpp \
 			sources/Commands/JoinCommand.cpp \
-			sources/Commands/NickCommand.cpp \
-			sources/Commands/PassCommand.cpp \
-			sources/Commands/UserCommand.cpp \
-			sources/Commands/PrivmsgCommand.cpp \
-			sources/Commands/PingCommand.cpp \
 			sources/Commands/KickCommand.cpp \
+			sources/Commands/ListCommand.cpp \
 			sources/Commands/ModeCommand.cpp \
-			sources/Commands/TopicCommand.cpp \
+			sources/Commands/NickCommand.cpp \
 			sources/Commands/PartCommand.cpp \
-			sources/Commands/ListCommand.cpp
+			sources/Commands/PassCommand.cpp \
+			sources/Commands/PingCommand.cpp \
+			sources/Commands/PongCommand.cpp \
+			sources/Commands/PrivmsgCommand.cpp \
+			sources/Commands/TopicCommand.cpp \
+			sources/Commands/UserCommand.cpp
 
 BONUS_SOURCES	= bonus/main.cpp \
 				bonus/Bot.cpp \

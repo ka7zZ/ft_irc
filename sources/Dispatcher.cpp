@@ -1,16 +1,17 @@
 # include "../headers/Dispatcher.hpp"
 # include "../headers/Commands/InviteCommand.hpp"
 # include "../headers/Commands/JoinCommand.hpp"
-# include "../headers/Commands/PassCommand.hpp"
-# include "../headers/Commands/UserCommand.hpp"
-# include "../headers/Commands/NickCommand.hpp"
-# include "../headers/Commands/PrivmsgCommand.hpp"
-# include "../headers/Commands/PingCommand.hpp"
-# include "../headers/Commands/PartCommand.hpp"
 # include "../headers/Commands/KickCommand.hpp"
-# include "../headers/Commands/ModeCommand.hpp"
-# include "../headers/Commands/TopicCommand.hpp"
 # include "../headers/Commands/ListCommand.hpp"
+# include "../headers/Commands/ModeCommand.hpp"
+# include "../headers/Commands/NickCommand.hpp"
+# include "../headers/Commands/PartCommand.hpp"
+# include "../headers/Commands/PassCommand.hpp"
+# include "../headers/Commands/PingCommand.hpp"
+# include "../headers/Commands/PongCommand.hpp"
+# include "../headers/Commands/PrivmsgCommand.hpp"
+# include "../headers/Commands/TopicCommand.hpp"
+# include "../headers/Commands/UserCommand.hpp"
 # include "../headers/Server.hpp"
 # include "../headers/IRCParser.hpp"
 # include "../headers/Client.hpp"
@@ -21,18 +22,18 @@
 Dispatcher::Dispatcher() {
 	try {
 		_commands["invite"] = new InviteCommand();
-		_commands["nick"] = new NickCommand();
-		_commands["user"] = new UserCommand();
 		_commands["join"] = new JoinCommand();
-        _commands["privmsg"] = new PrivmsgCommand();
+		_commands["kick"] = new KickCommand();
+		_commands["list"] = new ListCommand();
+		_commands["mode"] = new ModeCommand();
+		_commands["nick"] = new NickCommand();
 		_commands["part"] = new PartCommand();
 		_commands["pass"] = new PassCommand();
 		_commands["ping"] = new PingCommand();
-        _commands["kick"] = new KickCommand();
-        _commands["mode"] = new ModeCommand();
-        _commands["topic"] = new TopicCommand();
-        _commands["list"] = new ListCommand();
-		
+		_commands["pong"] = new PongCommand();
+		_commands["privmsg"] = new PrivmsgCommand();
+		_commands["topic"] = new TopicCommand();
+		_commands["user"] = new UserCommand();
 	} catch (std::exception& e) {
 		clear();
 		std::cout << e.what() << std::endl;
