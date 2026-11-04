@@ -1,4 +1,5 @@
 #include "Bot.hpp"
+#include <iostream>
 #include <sstream>
 #include <csignal>
 
@@ -9,7 +10,6 @@ static void signalHandler(int signum)
     (void)signum;
     g_running = 0;
 }
-
 
 static void validateArgs(const char* address, const char* port)
 {
@@ -28,8 +28,6 @@ static void validateArgs(const char* address, const char* port)
 		throw std::runtime_error("port number must be between 1024 and 65535");
 }
 
-
-
 int	main(int argc, char **argv)
 {
 
@@ -39,19 +37,13 @@ int	main(int argc, char **argv)
 		return (0);
 	}
 	std::signal(SIGINT, signalHandler);
-    	std::signal(SIGTERM, signalHandler);
+    std::signal(SIGTERM, signalHandler);
 	try
 	{
 		validateArgs(argv[1], argv[2]);
-		Bot client(argv[1], argv[2]);
 
-		client.prompt_BotInterface();
-		client.initializeBot();
-		client.connectBot();
-		client.login();
-		client.initServerHandlers();
-		client.initUserCommands();
-		client.keepWaitingReply();
+		Bot bot(argv[1], argv[2]);
+		bot.run();
 	} catch(std::exception &e)
 	{
 		std::cout << e.what() << std::endl;

@@ -1,60 +1,51 @@
-#pragma once
+#ifndef BOT_HPP
+# define BOT_HPP
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <iostream>
-#include <cstring>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <cstdlib>
-
-#include "IRCParser.hpp"
-#include  <map>
+#include <string>
+#include <map>
 #include <csignal>
+
 extern volatile sig_atomic_t g_running;
+
+struct Message;
 
 class Bot {
 
 	private:
+		const std::string	_hostname;
+		std::string 		_nickname;
+		std::string 		_username;
+		std::string 		_realname;
+		int					_port;
+		std::string 		_password;
+		int 				_botFd;
+		struct sockaddr_in	_myaddr;
+		
 		typedef void (Bot::*Handler)(const Message &);
 		
-		std::map<std::string, Handler> _serverHandlers;   // "001", "PRIVMSG"
-		std::map<std::string, Handler> _userCommands;     // "!roll", "!help"
-		
-		std::string _hostname;
-		int	_port;
-		std::string _password;
-		int bot_fd;
-		struct sockaddr_in myaddr;
+		std::map<std::string, Handler> _serverHandlers;
+		std::map<std::string, Handler> _userCommands;
 
-		std::string _nickname;
-		std::string _username;
-		std::string _realname;
-
-		
-	public:
-		Bot(std::string, std::string);
-		~Bot();
-		
-
-		void	login();
-		void	prompt_BotInterface();
-		void	initializeBot();
-		void	connectBot();
-		void	keepWaitingReply();
-		void	handleLine(const Message &msg);
-		
-
-		//dispatcher
-		void	initServerHandlers();
-		void	initUserCommands();
-
-		//Features
 		void	onRoll(const Message& msg);
 		void	onHelp(const Message& msg);
 		void	onPrivmsg(const Message& msg);
 		void	onWelcome(const Message& msg);
 		
-		// helper function
+		int		initBot();
+		int		connectBot();
+		
+		void	prompt_BotInterface();
+		void	login();
+
+		void	handleLine(const Message &msg);
 		void	sendMessage(const std::string& text);
+		
+	public:
+		Bot(const std::string&, const std::string&);
+		~Bot();
+
+		void	run();
 };
+
+#endif

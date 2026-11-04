@@ -46,7 +46,7 @@ void	ListCommand::execute(Server& sv, Client& user, const Message& msg) const
 	sv.sendTo(user, ":ircserv 321 " + user.getNickname()
 		+ " Channel :Users Name\r\n");
 
-	const std::map<std::string, Channel>& channels = sv.getChannels();
+	const std::map<std::string, Channel>& channels = sv.getAllChannels();
 	std::map<std::string, Channel>::const_iterator it;
 	for (it = channels.begin(); it != channels.end(); ++it)
 	{
